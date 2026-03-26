@@ -1,50 +1,106 @@
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { useNavigate, useLocation } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
+import { useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
+import { DarkProjectHero } from "@/components/ui/progressive-hero";
+import { TextRotate } from "@/components/ui/text-rotate";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+
+  // If user is already logged in, redirect them
+  useEffect(() => {
+    if (user) {
+      const pendingToken = localStorage.getItem("pending_invite_token");
+      const pendingJoinCode = localStorage.getItem("pending_join_code");
+      
+      if (pendingToken) {
+        navigate(`/invite/${pendingToken}`);
+      } else if (pendingJoinCode) {
+        // If we had a join code intent, stay on /join to complete it
+        // but we need to actually join now. For now, just land them there.
+        navigate("/join");
+      } else {
+        const from = (location.state as any)?.from?.pathname || "/";
+        navigate(from, { replace: true });
+      }
+    }
+  }, [user, navigate, location]);
+
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+      }
+    });
+    if (error) toast.error(error.message);
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-sm space-y-8 text-center"
-      >
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/25">
-            <Heart className="h-8 w-8 text-primary-foreground" />
+    <DarkProjectHero>
+      <div className="max-w-md w-full space-y-8 text-center relative z-20 p-4">
+        <div className="space-y-4">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-red-700 mb-2 shadow-[0_0_20px_rgba(185,28,28,0.5)] mx-auto">
+            <Heart className="h-6 w-6 text-white" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold">MedFamily</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Family medicine reminders, together.
+          
+          <div className="flex flex-col items-center gap-2">
+            <h1 className="text-4xl font-black tracking-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
+              <TextRotate
+                texts={["FamilyHealth Hub", "Care Hub", "Smart Health", "Family First"]}
+                mainClassName="justify-center"
+                staggerFrom="last"
+                staggerDuration={0.02}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              />
+            </h1>
+            
+            <p className="text-red-200 font-medium drop-shadow-[0_1px_5px_rgba(0,0,0,0.5)] h-6">
+              <TextRotate
+                texts={[
+                  "Your family's health, synced in real-time.",
+                  "Manage medication schedules securely.",
+                  "Keep your loved ones healthy.",
+                  "Real-time health monitoring."
+                ]}
+                mainClassName="justify-center text-sm sm:text-base"
+                staggerDuration={0.01}
+                rotationInterval={3000}
+                transition={{ type: "spring", damping: 20, stiffness: 200 }}
+              />
             </p>
           </div>
         </div>
 
-        <div className="card-medical space-y-4">
-          <Button
-            className="w-full gap-2"
-            size="lg"
-            onClick={() => navigate("/")}
+        <div className="bg-black/40 backdrop-blur-md border-2 border-red-900/50 rounded-xl p-8 space-y-6 shadow-2xl mt-8">
+          <Button 
+            onClick={handleGoogleLogin} 
+            className="w-full h-12 text-lg font-bold bg-red-700 hover:bg-red-800 text-white border-none shadow-[0_0_15px_rgba(185,28,28,0.3)]"
           >
-            <svg className="h-5 w-5" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
-              <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-              <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-              <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-            </svg>
-            Sign in with Google
+            Continue with Google
           </Button>
-          <p className="caption">
-            Sign in to manage your family's health together
-          </p>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => navigate("/join")} 
+              className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest bg-red-700 hover:bg-red-800 text-white border-none shadow-[0_0_15px_rgba(185,28,28,0.3)] px-2"
+            >
+              Join Family
+            </Button>
+            <Button 
+              onClick={() => navigate("/join")} 
+              className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest bg-red-700 hover:bg-red-800 text-white border-none shadow-[0_0_15px_rgba(185,28,28,0.3)] px-2"
+            >
+              Create Hub
+            </Button>
+          </div>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </DarkProjectHero>
   );
 }

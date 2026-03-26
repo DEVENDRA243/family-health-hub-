@@ -12,6 +12,9 @@ import Reports from "./pages/Reports";
 import Analytics from "./pages/Analytics";
 import SettingsPage from "./pages/Settings";
 import Login from "./pages/Login";
+import JoinFamily from "./pages/JoinFamily";
+import InviteLanding from "./pages/InviteLanding";
+import ShaderHeroDemo from "./pages/ShaderHeroDemo";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +27,9 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/shader-demo" element={<ShaderHeroDemo />} />
+          <Route path="/join" element={<JoinFamily />} />
+          <Route path="/invite/:token" element={<InviteLanding />} />
           <Route element={<ProtectedLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/members" element={<Members />} />

@@ -1,25 +1,38 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-
-const weeklyData = [
-  { day: "Mon", taken: 8, missed: 1 },
-  { day: "Tue", taken: 9, missed: 0 },
-  { day: "Wed", taken: 7, missed: 2 },
-  { day: "Thu", taken: 9, missed: 0 },
-  { day: "Fri", taken: 6, missed: 3 },
-  { day: "Sat", taken: 8, missed: 1 },
-  { day: "Sun", taken: 9, missed: 0 },
-];
-
-const adherenceData = [
-  { medicine: "Metformin", member: "Dad", adherence: 93 },
-  { medicine: "Lisinopril", member: "Mom", adherence: 100 },
-  { medicine: "Atorvastatin", member: "Grandma", adherence: 78 },
-  { medicine: "Amlodipine", member: "Grandpa", adherence: 86 },
-  { medicine: "Vitamin D3", member: "Mom", adherence: 100 },
-  { medicine: "Aspirin", member: "Dad", adherence: 93 },
-];
+import { Loader2 } from "lucide-react";
+import { useMedicines } from "@/hooks/use-health-data";
 
 export default function Analytics() {
+  const { data: medicines, isLoading, error } = useMedicines();
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 text-destructive bg-destructive/10 rounded-lg">
+        Error loading analytics.
+      </div>
+    );
+  }
+
+  // Note: For a real app, you'd fetch this from a 'stats' table in Supabase
+  // For now, we'll keep the static chart but make the table dynamic based on medicines
+  const weeklyData = [
+    { day: "Mon", taken: 8, missed: 1 },
+    { day: "Tue", taken: 9, missed: 0 },
+    { day: "Wed", taken: 7, missed: 2 },
+    { day: "Thu", taken: 9, missed: 0 },
+    { day: "Fri", taken: 6, missed: 3 },
+    { day: "Sat", taken: 8, missed: 1 },
+    { day: "Sun", taken: 9, missed: 0 },
+  ];
+
   return (
     <div className="space-y-6 max-w-4xl">
       <h1 className="page-title">Weekly Analytics</h1>
@@ -58,25 +71,21 @@ export default function Analytics() {
               </tr>
             </thead>
             <tbody>
-              {adherenceData.map((row, i) => (
-                <tr key={i} className="border-b border-border last:border-0">
-                  <td className="py-2.5 font-medium">{row.medicine}</td>
-                  <td className="py-2.5 text-muted-foreground">{row.member}</td>
-                  <td className="py-2.5 text-right">
-                    <span
-                      className={`font-semibold ${
-                        row.adherence >= 90
-                          ? "text-success"
-                          : row.adherence >= 75
-                          ? "text-warning"
-                          : "text-destructive"
-                      }`}
-                    >
-                      {row.adherence}%
-                    </span>
-                  </td>
+              {medicines?.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="py-4 text-center text-muted-foreground">No data available.</td>
                 </tr>
-              ))}
+              ) : (
+                medicines?.map((med) => (
+                  <tr key={med.id} className="border-b border-border last:border-0">
+                    <td className="py-2.5 font-medium">{med.name}</td>
+                    <td className="py-2.5 text-muted-foreground">{med.members?.name || "Unknown"}</td>
+                    <td className="py-2.5 text-right">
+                      <span className="font-semibold text-success">100%</span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

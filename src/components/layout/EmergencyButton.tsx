@@ -10,44 +10,59 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useState } from "react";
+import { useAddEmergencyAlert } from "@/hooks/use-health-data";
+import { toast } from "sonner";
 
 export function EmergencyButton() {
   const [open, setOpen] = useState(false);
-  const [sending, setSending] = useState(false);
+  const sendAlert = useAddEmergencyAlert();
 
   const handleEmergency = async () => {
-    setSending(true);
-    // TODO: integrate with Supabase emergency_alerts table
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setSending(false);
-    setOpen(false);
+    try {
+      await sendAlert.mutateAsync({
+        message: "Emergency Alert Sent by Family Member",
+        type: "EMERGENCY",
+      });
+      toast.error("EMERGENCY ALERT SENT!", {
+        description: "All family members have been notified.",
+        duration: 5000,
+      });
+      setOpen(false);
+    } catch (err) {
+      toast.error("Failed to send emergency alert.");
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="emergency" size="sm" className="gap-1.5">
+        <Button variant="emergency" size="sm" className="gap-1.5 animate-pulse">
           <AlertTriangle className="h-4 w-4" />
-          <span className="hidden sm:inline">Emergency</span>
+          <span className="hidden sm:inline font-bold">EMERGENCY</span>
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="border-emergency/50 bg-emergency/5">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-emergency">
-            <AlertTriangle className="h-5 w-5" />
-            Send Emergency Alert
+          <DialogTitle className="flex items-center gap-2 text-emergency text-xl font-black">
+            <AlertTriangle className="h-6 w-6" />
+            CRITICAL EMERGENCY
           </DialogTitle>
-          <DialogDescription>
-            This will send an emergency alert to all family members immediately.
-            Are you sure you want to proceed?
+          <DialogDescription className="text-foreground font-medium pt-2">
+            This will send an immediate emergency alert to all family members' dashboards.
+            Are you absolutely sure you want to proceed?
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold">
+            NO, CANCEL
           </Button>
-          <Button variant="emergency" onClick={handleEmergency} disabled={sending}>
-            {sending ? "Sending..." : "Send Alert"}
+          <Button 
+            variant="emergency" 
+            onClick={handleEmergency} 
+            disabled={sendAlert.isPending}
+            className="font-black"
+          >
+            {sendAlert.isPending ? "SENDING..." : "YES, SEND ALERT!"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -7,9 +7,13 @@ import {
   BarChart3,
   Settings,
   Heart,
+  Loader2,
+  LogIn,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useFamilyInfo, useMembers } from "@/hooks/use-health-data";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Sidebar,
   SidebarContent,
@@ -39,11 +43,22 @@ const adminItems = [
 
 export function AppSidebar() {
   const { state } = useSidebar();
+  const { user, signOut } = useAuth();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const navigate = useNavigate();
+  const { data: familyInfo, isLoading: isFamilyLoading } = useFamilyInfo();
+  const { data: members, isLoading: isMembersLoading } = useMembers();
+
+  const isHead = familyInfo?.created_by === user?.id;
 
   const isActive = (path: string) =>
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
+
+  const handleGoToLogin = async () => {
+    await signOut();
+    navigate("/login");
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -54,7 +69,9 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="text-sm font-semibold text-foreground">MedFamily</span>
+              <span className="text-sm font-semibold text-foreground">
+                {familyInfo?.name || "FamilyHealth Hub"}
+              </span>
               <span className="caption">Medicine Reminders</span>
             </div>
           )}
@@ -80,33 +97,41 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Admin</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {adminItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink to={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {isHead && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                      <NavLink to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
-      <SidebarFooter className="p-3">
-        {!collapsed && (
+      {!collapsed && (
+        <SidebarFooter className="p-4 border-t border-sidebar-border">
           <div className="rounded-lg bg-primary/5 p-3">
-            <p className="text-xs font-medium text-primary">Family: Johnson</p>
-            <p className="caption">4 members · Code: ABC123</p>
+            <p className="text-xs font-medium text-primary">
+              Family: {familyInfo?.name?.split(" ")[0] || "Health"}
+            </p>
+            {isHead && (
+              <p className="caption">
+                {members?.length || 0} members · Code: {familyInfo?.invite_code || "---"}
+              </p>
+            )}
           </div>
-        )}
-      </SidebarFooter>
+        </SidebarFooter>
+      )}
     </Sidebar>
   );
 }
