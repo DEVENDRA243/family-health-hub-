@@ -10,7 +10,7 @@ interface CheckupCardProps {
   title: string;
   type: string;
   scheduledDate: string;
-  status: "upcoming" | "completed";
+  status: "upcoming" | "completed" | "missed";
   onMarkCompleted?: () => void;
 }
 
@@ -25,26 +25,37 @@ export function CheckupCard({
 }: CheckupCardProps) {
   const formattedTime = format(parseISO(scheduledDate), "h:mm a");
 
+  const getStatusStyles = () => {
+    switch (status) {
+      case 'completed':
+        return 'border-success/30 bg-success/5 opacity-80';
+      case 'missed':
+        return 'border-destructive/50 bg-destructive/5';
+      default:
+        return 'border-warning/30 bg-warning/5';
+    }
+  };
+
   return (
-    <div className={`card-medical flex items-center gap-4 transition-all ${status === 'completed' ? 'border-success/30 bg-success/5 opacity-80' : 'border-warning/30 bg-warning/5'}`}>
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10 text-warning shrink-0">
+    <div className={`card-medical flex items-center gap-4 transition-all ${getStatusStyles()}`}>
+      <div className={`flex h-10 w-10 items-center justify-center rounded-lg shrink-0 ${status === 'missed' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'}`}>
         <CalendarCheck className="h-5 w-5" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
           <span className="font-bold text-sm truncate uppercase">{title}</span>
-          <StatusBadge status={status} />
+          <StatusBadge status={status === 'upcoming' ? 'pending' : status} />
         </div>
         <p className="text-foreground/70 text-xs font-medium">{memberName} · {type}</p>
         <div className="flex items-center gap-3 mt-1">
-          <span className="caption flex items-center gap-1 font-bold text-primary">
+          <span className={`caption flex items-center gap-1 font-bold ${status === 'missed' ? 'text-destructive' : 'text-primary'}`}>
             <CalendarCheck className="h-3 w-3" />
             {formattedTime}
           </span>
           <span className="caption italic">Scheduled for Today</span>
         </div>
       </div>
-      {status === "upcoming" && onMarkCompleted && (
+      {(status === "upcoming" || status === "missed") && onMarkCompleted && (
         <Button
           variant="success"
           size="sm"

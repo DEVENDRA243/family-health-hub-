@@ -1,7 +1,7 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { EmergencyButton } from "@/components/layout/EmergencyButton";
 import { AvatarWithFallback } from "@/components/shared/AvatarWithFallback";
-import { Bell, CheckCircle2, AlertCircle, Clock, Info, UserPlus, LogOut, LogIn } from "lucide-react";
+import { Bell, CheckCircle2, AlertCircle, Clock, Info, UserPlus, LogOut, LogIn, User, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import {
@@ -10,21 +10,43 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { useNotifications, useMarkNotificationRead, useClearNotifications } from "@/hooks/use-health-data";
+import { useNotifications, useMarkNotificationRead, useClearNotifications, useFamilyInfo, useMembers } from "@/hooks/use-health-data";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { useState } from "react";
 
 export function TopNav() {
   const { data: notifications } = useNotifications();
   const markRead = useMarkNotificationRead();
   const clearNotifications = useClearNotifications();
   const { signOut, user } = useAuth();
+  const { data: familyInfo } = useFamilyInfo();
+  const { data: members } = useMembers();
   const navigate = useNavigate();
 
   const unreadCount = notifications?.filter(n => !n.is_read).length || 0;
   const hasUnread = unreadCount > 0;
+
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+  // Find the current user's member record to get their stored name
+  const currentMember = members?.find(m => m.user_id === user?.id);
+  const displayName = currentMember?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || "User";
+
+  const handleOpenChange = (open: boolean) => {
+    setIsNotificationsOpen(open);
+    if (open && hasUnread) {
+      // Mark all as read when opening the menu
+      notifications?.forEach(n => {
+        if (!n.is_read) {
+          markRead.mutate(n.id);
+        }
+      });
+    }
+  };
 
   const handleClearAll = async () => {
     try {
@@ -45,6 +67,15 @@ export function TopNav() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast.success("Logged out successfully");
+    } catch (error) {
+      toast.error("Failed to log out");
+    }
+  };
+
   return (
     <header className="h-14 flex items-center justify-between border-b border-border px-4 bg-card">
       <div className="flex items-center gap-2">
@@ -62,11 +93,11 @@ export function TopNav() {
       <div className="flex items-center gap-3">
         <EmergencyButton />
         
-        <DropdownMenu>
+        <DropdownMenu open={isNotificationsOpen} onOpenChange={handleOpenChange}>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative text-muted-foreground">
               <Bell className="h-5 w-5" />
-              {hasUnread && (
+              {hasUnread && !isNotificationsOpen && (
                 <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-emergency text-[10px] font-bold text-white border-2 border-card">
                   {unreadCount}
                 </span>
@@ -141,19 +172,29 @@ export function TopNav() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="focus:outline-none">
+            <button className="focus:outline-none rounded-full ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-muted p-0.5">
               <AvatarWithFallback 
-                name={user?.email || "User"} 
+                name={displayName} 
                 size="sm" 
               />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-bold leading-none uppercase tracking-tight">{displayName}</p>
+                <div className="flex items-center text-xs text-muted-foreground gap-1">
+                  <Mail className="h-3 w-3" />
+                  <span className="truncate">{user?.email}</span>
+                </div>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
             <DropdownMenuItem 
-              className="text-destructive focus:text-destructive cursor-pointer"
-              onClick={() => signOut()}
+              className="text-destructive focus:text-destructive cursor-pointer font-bold uppercase text-[10px] tracking-widest gap-2"
+              onClick={handleLogout}
             >
-              <LogOut className="mr-2 h-4 w-4" />
+              <LogOut className="h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>

@@ -67,10 +67,21 @@ export default function Dashboard() {
     );
   }
 
-  // Filter today's checkups
-  const todayCheckups = checkups?.filter(checkup => 
-    isSameDay(parseISO(checkup.scheduled_date), new Date())
-  ) || [];
+  // Auto-identify missed checkups (if time is past and still pending)
+  const processedCheckups = checkups?.map(checkup => {
+    if (checkup.status === 'pending' && isPast(parseISO(checkup.scheduled_date))) {
+      return { ...checkup, status: 'missed' as const };
+    }
+    return checkup;
+  }) || [];
+
+  // Filter today's checkups from processed list
+  const todayCheckups = processedCheckups
+    .filter(checkup => isSameDay(parseISO(checkup.scheduled_date), new Date()))
+    .sort((a, b) => {
+      const order = { missed: 0, pending: 1, completed: 2 };
+      return order[a.status as keyof typeof order] - order[b.status as keyof typeof order];
+    });
 
   // Auto-identify missed doses (if time is past and still pending)
   const processedDoses = doses?.map(dose => {
@@ -87,10 +98,10 @@ export default function Dashboard() {
   });
 
   const stats = {
-    total: processedDoses.length,
-    taken: processedDoses.filter((s) => s.status === "taken").length,
-    missed: processedDoses.filter((s) => s.status === "missed").length,
-    upcoming: processedDoses.filter((s) => s.status === "pending").length,
+    total: processedDoses.length + todayCheckups.length,
+    taken: processedDoses.filter((s) => s.status === "taken").length + todayCheckups.filter(c => c.status === 'completed').length,
+    missed: processedDoses.filter((s) => s.status === "missed").length + todayCheckups.filter(c => c.status === 'missed').length,
+    upcoming: processedDoses.filter((s) => s.status === "pending").length + todayCheckups.filter(c => c.status === 'pending').length,
   };
 
   const recentTaken = processedDoses
@@ -98,8 +109,22 @@ export default function Dashboard() {
     .slice(0, 3);
 
   const recentCheckups = todayCheckups
-    .filter(c => c.status === 'completed')
-    .slice(0, 2);
+    .filter(c => c.status === 'completed' || c.status === 'missed')
+    .slice(0, 3);
+
+  // Get names of members who missed something today
+  const missedDoseNames = processedDoses
+    .filter(d => d.status === 'missed')
+    .map(d => d.medicines?.members?.name)
+    .filter(Boolean);
+
+  const missedCheckupNames = todayCheckups
+    .filter(c => c.status === 'missed')
+    .map(c => c.members?.name)
+    .filter(Boolean);
+
+  const allMissedNames = [...new Set([...missedDoseNames, ...missedCheckupNames])];
+  const missedCount = stats.missed;
 
   // Side Panel for the Head of the Family
   return (
@@ -131,12 +156,18 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {stats.missed > 0 && (
+        {missedCount > 0 && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 flex items-center gap-3 animate-pulse">
             <AlertCircle className="text-destructive h-5 w-5" />
             <div className="flex-1">
-              <p className="text-sm font-bold text-destructive">ATTENTION HEAD: {stats.missed} doses missed!</p>
-              <p className="caption">Please check on family members who haven't taken their meds.</p>
+              <p className="text-sm font-bold text-destructive uppercase tracking-tight">
+                Attention Head: {missedCount} {missedCount === 1 ? 'Alert' : 'Alerts'} Missed!
+              </p>
+              <p className="caption font-medium text-destructive/80 mt-0.5">
+                {allMissedNames.length > 0 
+                  ? `Please check on: ${allMissedNames.join(", ")}` 
+                  : "Please check on family members who haven't completed their schedule."}
+              </p>
             </div>
           </div>
         )}
@@ -247,17 +278,21 @@ export default function Dashboard() {
                   </div>
                 ))}
                 {recentCheckups.map((checkup) => (
-                  <div key={checkup.id} className="flex items-start gap-3 border-l-2 border-warning pl-3 py-1">
+                  <div key={checkup.id} className={`flex items-start gap-3 border-l-2 ${checkup.status === 'completed' ? 'border-success' : 'border-destructive'} pl-3 py-1`}>
                     <div className="flex-1">
                       <p className="text-xs">
-                        <span className="font-bold text-warning">{checkup.members?.name}</span> completed 
+                        <span className={`font-bold ${checkup.status === 'completed' ? 'text-success' : 'text-destructive'}`}>{checkup.members?.name}</span> {checkup.status === 'completed' ? 'completed' : 'missed'} 
                         <span className="font-bold"> {checkup.title}</span>
                       </p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
-                        Appointment finished at {format(parseISO(checkup.scheduled_date), "h:mm a")}
+                        {checkup.status === 'completed' ? 'Appointment finished at' : 'Scheduled for'} {format(parseISO(checkup.scheduled_date), "h:mm a")}
                       </p>
                     </div>
-                    <CheckCircle2 className="h-3 w-3 text-warning shrink-0 mt-1" />
+                    {checkup.status === 'completed' ? (
+                      <CheckCircle2 className="h-3 w-3 text-success shrink-0 mt-1" />
+                    ) : (
+                      <AlertCircle className="h-3 w-3 text-destructive shrink-0 mt-1" />
+                    )}
                   </div>
                 ))}
               </>

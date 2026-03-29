@@ -56,6 +56,9 @@ export type Report = {
   title: string;
   uploaded_at: string;
   type: ReportType;
+  file_url?: string;
+  members?: { name: string };
+  user_id?: string;
 };
 
 export type FamilyInfo = {

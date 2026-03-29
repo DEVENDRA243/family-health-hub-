@@ -13,6 +13,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -33,6 +43,8 @@ export default function Medicines() {
   const addMedicine = useAddMedicine();
   const deleteMedicine = useDeleteMedicine();
   const [isOpen, setIsOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteName, setDeleteName] = useState<string>("");
   
   const isAdmin = familyInfo?.created_by === user?.id;
 
@@ -50,31 +62,43 @@ export default function Medicines() {
       toast.error("Please select a family member.");
       return;
     }
+
+    // Normalize timings (e.g., "2 AM" -> "02:00 AM")
+    const normalizedTimings = formData.timings.split(",").map(t => {
+      let time = t.trim().toUpperCase();
+      if (/^\d{1,2}\s*(AM|PM)$/.test(time)) {
+        const [hour, period] = time.split(/\s*(AM|PM)/);
+        time = `${hour.padStart(2, '0')}:00 ${period}`;
+      }
+      return time;
+    }).filter(t => t !== "");
+
     try {
       await addMedicine.mutateAsync({
         name: formData.name,
         dosage: formData.dosage,
         member_id: formData.member_id,
         instructions: formData.instructions,
-        timings: formData.timings.split(",").map(t => t.trim()).filter(t => t !== ""),
+        timings: normalizedTimings,
         is_active: true,
       });
       setIsOpen(false);
       setFormData({ name: "", dosage: "", member_id: "", instructions: "", timings: "" });
       toast.success("Medicine added successfully! It's now live on the dashboard.");
-    } catch (err) {
-      toast.error("Failed to add medicine.");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(`Failed to add medicine: ${err.message || "Unknown error"}`);
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (confirm(`Are you sure you want to remove ${name}?`)) {
-      try {
-        await deleteMedicine.mutateAsync(id);
-        toast.success(`${name} has been removed.`);
-      } catch (err) {
-        toast.error("Failed to remove medicine.");
-      }
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await deleteMedicine.mutateAsync(deleteId);
+      toast.success(`${deleteName} has been removed.`);
+      setDeleteId(null);
+    } catch (err) {
+      toast.error("Failed to remove medicine.");
     }
   };
 
@@ -235,7 +259,10 @@ export default function Medicines() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem 
                         className="text-destructive focus:text-destructive gap-2 cursor-pointer font-bold"
-                        onClick={() => handleDelete(med.id, med.name)}
+                        onClick={() => {
+                          setDeleteId(med.id);
+                          setDeleteName(med.name);
+                        }}
                       >
                         <Trash2 className="h-4 w-4" />
                         Remove Medicine
@@ -248,6 +275,26 @@ export default function Medicines() {
           })
         )}
       </div>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-bold">Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove <span className="font-bold text-foreground">"{deleteName}"</span> from your family's records. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="font-bold">No, Keep it</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 font-bold"
+              onClick={handleDelete}
+            >
+              Yes, Remove it
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

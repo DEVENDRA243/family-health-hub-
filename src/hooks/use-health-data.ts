@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { Member, Medicine, Dose, Checkup, Report, FamilyInfo } from '@/types/health';
 import { useAuth } from './use-auth';
+import { format } from 'date-fns';
 
 // --- Family Info ---
 export const useFamilyInfo = () => {
@@ -12,16 +13,24 @@ export const useFamilyInfo = () => {
       if (!user) return null;
       
       // 1. Find the family ID this user belongs to
-      // We use .order() and .limit(1) to handle multiple family memberships gracefully
+      // We also check if their email is synced for emergency alerts
       const { data: memberData, error: memberError } = await supabase
         .from('members')
-        .select('family_id')
+        .select('id, family_id, email')
         .eq('user_id', user.id)
         .order('id', { ascending: false })
         .limit(1);
 
       if (memberError) throw memberError;
       const member = memberData?.[0];
+
+      // Sync email if missing (self-healing)
+      if (member && !member.email && user.email) {
+        await supabase
+          .from('members')
+          .update({ email: user.email })
+          .eq('id', member.id);
+      }
 
       // 2. If user is not in a family, check if they created one that hasn't linked them yet
       let familyId = member?.family_id;
@@ -79,6 +88,7 @@ export const useCreateFamily = () => {
           family_id: family.id,
           user_id: user.id,
           name: gmailName,
+          email: user.email, // Capture email for emergency alerts
           age: 0,
           gender: 'other',
           conditions: [],
@@ -221,7 +231,7 @@ export const useAddMedicine = () => {
       if (medError) throw medError;
 
       // 2. Create initial doses for today
-      const today = new Date().toISOString().split('T')[0];
+      const today = format(new Date(), "yyyy-MM-dd");
       const doses = medicine.timings.map(timing => ({
         family_id: family.id,
         medicine_id: medData.id,
@@ -231,6 +241,16 @@ export const useAddMedicine = () => {
       }));
 
       await supabase.from('doses').insert(doses);
+
+      // 3. Trigger email notification for the member
+      try {
+        await supabase.functions.invoke('send-emergency-email', {
+          body: { record: medData, type: 'medicine' }
+        });
+      } catch (emailErr) {
+        console.error("Failed to trigger medicine notification email:", emailErr);
+      }
+
       return medData as Medicine;
     },
     onSuccess: () => {
@@ -292,7 +312,88 @@ export const useUpdateDoseStatus = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['doses'] });
+      queryClient.invalidateQueries({ queryKey: ['weekly-stats'] });
     },
+  });
+};
+
+export const useWeeklyStats = () => {
+  const { data: family } = useFamilyInfo();
+  return useQuery({
+    queryKey: ['weekly-stats', family?.id],
+    queryFn: async () => {
+      if (!family) return [];
+      
+      const today = new Date();
+      const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(today.getDate() - (6 - i));
+        return d.toISOString().split('T')[0];
+      });
+
+      const { data, error } = await supabase
+        .from('doses')
+        .select('status, date')
+        .eq('family_id', family.id)
+        .in('date', last7Days);
+
+      if (error) throw error;
+
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      
+      return last7Days.map(date => {
+        const dayDoses = data?.filter(d => d.date === date) || [];
+        const d = new Date(date);
+        return {
+          day: dayNames[d.getDay()],
+          date,
+          taken: dayDoses.filter(d => d.status === 'taken').length,
+          missed: dayDoses.filter(d => d.status === 'missed').length,
+        };
+      });
+    },
+    enabled: !!family,
+  });
+};
+
+export const useMedicineStats = () => {
+  const { data: family } = useFamilyInfo();
+  return useQuery({
+    queryKey: ['medicine-stats', family?.id],
+    queryFn: async () => {
+      if (!family) return [];
+
+      const { data: medicines, error: medError } = await supabase
+        .from('medicines')
+        .select('id, name, members(name)')
+        .eq('family_id', family.id);
+
+      if (medError) throw medError;
+
+      const { data: doses, error: doseError } = await supabase
+        .from('doses')
+        .select('medicine_id, status')
+        .eq('family_id', family.id);
+
+      if (doseError) throw doseError;
+
+      return medicines.map(med => {
+        const medDoses = doses?.filter(d => d.medicine_id === med.id) || [];
+        const total = medDoses.length;
+        const taken = medDoses.filter(d => d.status === 'taken').length;
+        const adherence = total > 0 ? Math.round((taken / total) * 100) : 0;
+
+        return {
+          id: med.id,
+          name: med.name,
+          memberName: med.members?.name || 'Unknown',
+          adherence,
+          total,
+          taken
+        };
+      });
+    },
+    enabled: !!family,
   });
 };
 
@@ -327,6 +428,16 @@ export const useAddCheckup = () => {
         .select()
         .single();
       if (error) throw error;
+
+      // Trigger email notification for the member
+      try {
+        await supabase.functions.invoke('send-emergency-email', {
+          body: { record: data, type: 'checkup' }
+        });
+      } catch (emailErr) {
+        console.error("Failed to trigger checkup notification email:", emailErr);
+      }
+
       return data as Checkup;
     },
     onSuccess: () => {
@@ -391,13 +502,35 @@ export const useReports = () => {
 
 export const useAddReport = () => {
   const { data: family } = useFamilyInfo();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (report: Omit<Report, 'id' | 'family_id'>) => {
-      if (!family) throw new Error("No family found");
+    mutationFn: async ({ report, file }: { report: Omit<Report, 'id' | 'family_id' | 'user_id'>; file?: File }) => {
+      if (!family || !user) throw new Error("No family or user found");
+      
+      let file_url = report.file_url;
+
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `${family.id}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('reports')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('reports')
+          .getPublicUrl(filePath);
+        
+        file_url = publicUrl;
+      }
+
       const { data, error } = await supabase
         .from('reports')
-        .insert([{ ...report, family_id: family.id }])
+        .insert([{ ...report, family_id: family.id, file_url, user_id: user.id }])
         .select()
         .single();
       if (error) throw error;
@@ -412,7 +545,22 @@ export const useAddReport = () => {
 export const useDeleteReport = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, fileUrl }: { id: string; fileUrl?: string }) => {
+      // 1. Delete from storage if URL exists
+      if (fileUrl) {
+        try {
+          // Extract path from public URL
+          // e.g. https://.../storage/v1/object/public/reports/family-id/file-name.jpg
+          const path = fileUrl.split('/reports/')[1];
+          if (path) {
+            await supabase.storage.from('reports').remove([path]);
+          }
+        } catch (err) {
+          console.error("Failed to delete file from storage:", err);
+        }
+      }
+
+      // 2. Delete from database
       const { error } = await supabase
         .from('reports')
         .delete()
@@ -438,7 +586,11 @@ export const useAddEmergencyAlert = () => {
       // 1. Log the emergency alert
       const { data, error } = await supabase
         .from('emergency_alerts')
-        .insert([{ ...alert, family_id: family.id, created_at: new Date().toISOString() }])
+        .insert([{ 
+          ...alert, 
+          family_id: family.id, 
+          created_at: new Date().toISOString() 
+        }])
         .select()
         .single();
       if (error) throw error;
@@ -464,6 +616,17 @@ export const useAddEmergencyAlert = () => {
         if (notifications.length > 0) {
           await supabase.from('notifications').insert(notifications);
         }
+      }
+
+      // 3. Trigger the Edge Function to send emails
+      // This calls the 'send-emergency-email' function in Supabase
+      try {
+        await supabase.functions.invoke('send-emergency-email', {
+          body: { record: data, sender_id: user.id } // Pass sender_id directly here
+        });
+      } catch (emailErr) {
+        console.error("Failed to trigger emergency emails:", emailErr);
+        // We don't throw here to avoid failing the whole mutation if just emails fail
       }
 
       return data;
@@ -511,7 +674,11 @@ export const useJoinFamilyByToken = () => {
       // 2. Update the member status to connected
       const { data, error } = await supabase
         .from('members')
-        .update({ user_id: user.id, status: 'connected' })
+        .update({ 
+          user_id: user.id, 
+          status: 'connected',
+          email: user.email // Capture email for emergency alerts
+        })
         .eq('invite_token', token)
         .select()
         .single();
@@ -564,6 +731,7 @@ export const useJoinFamilyByCode = () => {
           family_id: family.id,
           user_id: user.id,
           name: gmailName,
+          email: user.email, // Capture email for emergency alerts
           age: 0,
           gender: 'other',
           conditions: [],

@@ -213,11 +213,10 @@ export default function Members() {
             const isHead = member.user_id === familyInfo?.created_by;
             const isMe = member.user_id === user?.id;
             
-            // Prefer metadata for the current user to ensure Gmail name shows up
-            // For others, use the name stored in DB (which is now Gmail name during join)
-            const displayName = isMe 
-              ? (user?.user_metadata?.full_name || user?.email?.split('@')[0] || member.name) 
-              : (member.name === 'Head' ? 'Family Head' : member.name);
+            // Use the name stored in the database.
+            // For Discord Link joins: This is the name the Admin assigned.
+            // For Code joins: This is the Gmail name saved during join.
+            const displayName = member.name === 'Head' ? 'Family Head' : member.name;
             
             // Logic to determine if we should show details (age, gender, conditions)
             // Based on user request: Admin adds these after they get finally connected.

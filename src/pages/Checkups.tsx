@@ -13,6 +13,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -32,6 +42,7 @@ export default function Checkups() {
   const addCheckup = useAddCheckup();
   const deleteCheckup = useDeleteCheckup();
   const [isOpen, setIsOpen] = useState(false);
+  const [deleteData, setDeleteData] = useState<{ id: string; title: string } | null>(null);
   
   const isAdmin = familyInfo?.created_by === user?.id;
 
@@ -64,14 +75,14 @@ export default function Checkups() {
     }
   };
 
-  const handleDelete = async (id: string, title: string) => {
-    if (confirm(`Are you sure you want to remove ${title}?`)) {
-      try {
-        await deleteCheckup.mutateAsync(id);
-        toast.success(`${title} has been removed.`);
-      } catch (err) {
-        toast.error("Failed to remove checkup.");
-      }
+  const handleDelete = async () => {
+    if (!deleteData) return;
+    try {
+      await deleteCheckup.mutateAsync(deleteData.id);
+      toast.success(`${deleteData.title} has been removed.`);
+      setDeleteData(null);
+    } catch (err) {
+      toast.error("Failed to remove checkup.");
     }
   };
 
@@ -224,7 +235,7 @@ export default function Checkups() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem 
                         className="text-destructive focus:text-destructive gap-2 cursor-pointer font-bold"
-                        onClick={() => handleDelete(checkup.id, checkup.title)}
+                        onClick={() => setDeleteData({ id: checkup.id, title: checkup.title })}
                       >
                         <Trash2 className="h-4 w-4" />
                         Remove Appointment
@@ -278,7 +289,7 @@ export default function Checkups() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem 
                         className="text-destructive focus:text-destructive gap-2 cursor-pointer font-bold"
-                        onClick={() => handleDelete(checkup.id, checkup.title)}
+                        onClick={() => setDeleteData({ id: checkup.id, title: checkup.title })}
                       >
                         <Trash2 className="h-4 w-4" />
                         Remove Record
@@ -291,6 +302,26 @@ export default function Checkups() {
           )}
         </div>
       </section>
+
+      <AlertDialog open={!!deleteData} onOpenChange={(open) => !open && setDeleteData(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-bold">Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the checkup <span className="font-bold text-foreground">"{deleteData?.title}"</span> from your family's records. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="font-bold">No, Keep it</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 font-bold"
+              onClick={handleDelete}
+            >
+              Yes, Remove it
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

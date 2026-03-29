@@ -72,7 +72,6 @@ export function AppSidebar() {
               <span className="text-sm font-semibold text-foreground">
                 {familyInfo?.name || "FamilyHealth Hub"}
               </span>
-              <span className="caption">Medicine Reminders</span>
             </div>
           )}
         </div>
@@ -122,7 +121,7 @@ export function AppSidebar() {
         <SidebarFooter className="p-4 border-t border-sidebar-border">
           <div className="rounded-lg bg-primary/5 p-3">
             <p className="text-xs font-medium text-primary">
-              Family: {familyInfo?.name?.split(" ")[0] || "Health"}
+              Family: {familyInfo?.name || "Health"}
             </p>
             {isHead && (
               <p className="caption">

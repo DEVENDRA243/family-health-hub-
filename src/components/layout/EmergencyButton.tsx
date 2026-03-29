@@ -11,20 +11,24 @@ import {
 } from "@/components/ui/dialog";
 import { useState } from "react";
 import { useAddEmergencyAlert } from "@/hooks/use-health-data";
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 export function EmergencyButton() {
   const [open, setOpen] = useState(false);
   const sendAlert = useAddEmergencyAlert();
 
+  const { user } = useAuth();
+
   const handleEmergency = async () => {
     try {
+      const senderName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "A Family Member";
       await sendAlert.mutateAsync({
-        message: "Emergency Alert Sent by Family Member",
-        type: "EMERGENCY",
+        message: `🚨 Emergency Alert triggered by ${senderName}`,
+        type: "emergency",
       });
-      toast.error("EMERGENCY ALERT SENT!", {
-        description: "All family members have been notified.",
+      toast.success("EMERGENCY ALERT SENT!", {
+        description: "All family members have been notified via email and dashboard.",
         duration: 5000,
       });
       setOpen(false);

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { useMemberByToken, useJoinFamilyByToken } from "@/hooks/use-health-data";
@@ -13,6 +13,7 @@ const InviteLanding = () => {
   const { user, loading: authLoading } = useAuth();
   const { data: member, isLoading: memberLoading, error: memberError } = useMemberByToken(token || "");
   const joinFamily = useJoinFamilyByToken();
+  const hasAttemptedJoin = useRef(false);
 
   useEffect(() => {
     // Wait for auth to load before making any redirect decisions
@@ -34,9 +35,10 @@ const InviteLanding = () => {
     }
 
     // 3. Auto-join if user is authenticated and member exists
-    if (user && member && member.status === 'invited' && !memberLoading && !joinFamily.isPending) {
+    if (user && member && member.status === 'invited' && !memberLoading && !joinFamily.isPending && !hasAttemptedJoin.current) {
       const performAutoJoin = async () => {
         try {
+          hasAttemptedJoin.current = true;
           console.log("Auto-joining family with token:", token);
           await joinFamily.mutateAsync(token || "");
           toast.success("Successfully joined the family!");
@@ -44,6 +46,7 @@ const InviteLanding = () => {
         } catch (error: any) {
           console.error("Auto-join failed:", error);
           toast.error(error.message || "Failed to join family automatically");
+          hasAttemptedJoin.current = false; // Reset on failure so they can retry
         }
       };
       performAutoJoin();
