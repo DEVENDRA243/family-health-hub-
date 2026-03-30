@@ -12,6 +12,7 @@ interface CheckupCardProps {
   scheduledDate: string;
   status: "upcoming" | "completed" | "missed";
   onMarkCompleted?: () => void;
+  onMarkMissed?: () => void;
 }
 
 export function CheckupCard({
@@ -22,9 +23,11 @@ export function CheckupCard({
   scheduledDate,
   status,
   onMarkCompleted,
+  onMarkMissed,
 }: CheckupCardProps) {
   const formattedTime = format(parseISO(scheduledDate), "h:mm a");
 
+  // UI FORCE UPDATE: Added border and precise status handling
   const getStatusStyles = () => {
     switch (status) {
       case 'completed':
@@ -55,16 +58,30 @@ export function CheckupCard({
           <span className="caption italic">Scheduled for Today</span>
         </div>
       </div>
-      {(status === "upcoming" || status === "missed") && onMarkCompleted && (
-        <Button
-          variant="success"
-          size="sm"
-          className="shrink-0 gap-1 font-bold shadow-sm"
-          onClick={onMarkCompleted}
-        >
-          <Check className="h-3.5 w-3.5" />
-          Done
-        </Button>
+      {(status === "upcoming" || status === "missed") && (
+        <div className="flex gap-2">
+          {onMarkMissed && status === "upcoming" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 text-destructive border-destructive/20 hover:bg-destructive/10"
+              onClick={onMarkMissed}
+            >
+              Not Done
+            </Button>
+          )}
+          {onMarkCompleted && (
+            <Button
+              variant="success"
+              size="sm"
+              className="shrink-0 gap-1 font-bold shadow-sm"
+              onClick={onMarkCompleted}
+            >
+              <Check className="h-3.5 w-3.5" />
+              Done
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );

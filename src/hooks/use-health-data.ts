@@ -299,20 +299,38 @@ export const useDoses = (date: string) => {
 
 export const useUpdateDoseStatus = () => {
   const queryClient = useQueryClient();
+  const { data: family } = useFamilyInfo();
+
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: Dose['status'] }) => {
       const { data, error } = await supabase
         .from('doses')
         .update({ status })
         .eq('id', id)
-        .select()
+        .select('*, medicines(name, members(name))')
         .single();
       if (error) throw error;
+
+      // If status is missed, notify the family head
+      if (status === 'missed' && family) {
+        const medicineName = (data as any).medicines?.name || 'Medicine';
+        const memberName = (data as any).medicines?.members?.name || 'A family member';
+        
+        await supabase.from('notifications').insert({
+          family_id: family.id,
+          user_id: family.created_by,
+          title: '💊 Medicine Missed',
+          message: `${memberName} missed their dose of ${medicineName}.`,
+          type: 'alert'
+        });
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['doses'] });
       queryClient.invalidateQueries({ queryKey: ['weekly-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
 };
@@ -448,19 +466,37 @@ export const useAddCheckup = () => {
 
 export const useUpdateCheckupStatus = () => {
   const queryClient = useQueryClient();
+  const { data: family } = useFamilyInfo();
+
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: Checkup['status'] }) => {
       const { data, error } = await supabase
         .from('checkups')
         .update({ status })
         .eq('id', id)
-        .select()
+        .select('*, members(name)')
         .single();
       if (error) throw error;
+
+      // If status is missed, notify the family head
+      if (status === 'missed' && family) {
+        const checkupTitle = (data as any).title || 'Checkup';
+        const memberName = (data as any).members?.name || 'A family member';
+        
+        await supabase.from('notifications').insert({
+          family_id: family.id,
+          user_id: family.created_by,
+          title: '📅 Checkup Missed',
+          message: `${memberName} missed their ${checkupTitle}.`,
+          type: 'alert'
+        });
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['checkups'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
 };

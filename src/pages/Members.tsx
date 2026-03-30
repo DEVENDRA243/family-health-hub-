@@ -219,8 +219,6 @@ export default function Members() {
             const displayName = member.name === 'Head' ? 'Family Head' : member.name;
             
             // Logic to determine if we should show details (age, gender, conditions)
-            // Based on user request: Admin adds these after they get finally connected.
-            // For now, let's hide them if the user explicitly wants them added by admin later.
             const showDetails = member.age > 0 || (member.conditions && member.conditions.length > 0);
 
             return (

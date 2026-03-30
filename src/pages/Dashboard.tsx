@@ -50,6 +50,18 @@ export default function Dashboard() {
     }
   };
 
+  const handleMarkCheckupMissed = async (checkupId: string, title: string, memberName: string) => {
+    try {
+      await updateCheckupStatus.mutateAsync({ id: checkupId, status: 'missed' });
+      toast.error(`${memberName}'s ${title} marked as NOT DONE!`, {
+        description: `Logged at ${format(new Date(), "hh:mm a")}`,
+        icon: <AlertCircle className="h-5 w-5 text-destructive" />,
+      });
+    } catch (err) {
+      toast.error("Failed to update checkup status.");
+    }
+  };
+
   if (isDosesLoading || isCheckupsLoading) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
@@ -67,9 +79,14 @@ export default function Dashboard() {
     );
   }
 
-  // Auto-identify missed checkups (if time is past and still pending)
+  // Auto-identify missed checkups (if time is past and still upcoming)
   const processedCheckups = checkups?.map(checkup => {
-    if (checkup.status === 'pending' && isPast(parseISO(checkup.scheduled_date))) {
+    // FORCE UPDATE: Using new Date() for more reliable local time comparison
+    const scheduledTime = new Date(checkup.scheduled_date);
+    const now = new Date();
+    
+    // If it's today and the time has passed, mark as missed
+    if (checkup.status === 'upcoming' && scheduledTime < now) {
       return { ...checkup, status: 'missed' as const };
     }
     return checkup;
@@ -80,7 +97,9 @@ export default function Dashboard() {
     .filter(checkup => isSameDay(parseISO(checkup.scheduled_date), new Date()))
     .sort((a, b) => {
       const order = { missed: 0, pending: 1, completed: 2 };
-      return order[a.status as keyof typeof order] - order[b.status as keyof typeof order];
+      const statusA = a.status === 'upcoming' ? 'pending' : a.status;
+      const statusB = b.status === 'upcoming' ? 'pending' : b.status;
+      return order[statusA as keyof typeof order] - order[statusB as keyof typeof order];
     });
 
   // Auto-identify missed doses (if time is past and still pending)
@@ -100,31 +119,32 @@ export default function Dashboard() {
   const stats = {
     total: processedDoses.length + todayCheckups.length,
     taken: processedDoses.filter((s) => s.status === "taken").length + todayCheckups.filter(c => c.status === 'completed').length,
-    missed: processedDoses.filter((s) => s.status === "missed").length + todayCheckups.filter(c => c.status === 'missed').length,
-    upcoming: processedDoses.filter((s) => s.status === "pending").length + todayCheckups.filter(c => c.status === 'pending').length,
+    missedMedicines: processedDoses.filter((s) => s.status === "missed").length,
+    missedCheckups: processedCheckups.filter((c) => c.status === "missed").length,
+    upcoming: processedDoses.filter((s) => s.status === "pending").length + todayCheckups.filter(c => c.status === 'upcoming').length,
   };
+
+  const missedCount = stats.missedMedicines + stats.missedCheckups;
 
   const recentTaken = processedDoses
     .filter(d => d.status === 'taken')
     .slice(0, 3);
 
-  const recentCheckups = todayCheckups
+  const recentCheckups = processedCheckups
     .filter(c => c.status === 'completed' || c.status === 'missed')
+    .sort((a, b) => new Date(b.scheduled_date).getTime() - new Date(a.scheduled_date).getTime())
     .slice(0, 3);
 
-  // Get names of members who missed something today
-  const missedDoseNames = processedDoses
+  // Get details of missed items for the alert bar
+  const missedDoseDetails = processedDoses
     .filter(d => d.status === 'missed')
-    .map(d => d.medicines?.members?.name)
-    .filter(Boolean);
+    .map(d => `${d.medicines?.members?.name} (${d.medicines?.name})`);
 
-  const missedCheckupNames = todayCheckups
+  const missedCheckupDetails = processedCheckups
     .filter(c => c.status === 'missed')
-    .map(c => c.members?.name)
-    .filter(Boolean);
+    .map(c => `${c.members?.name} (${c.title})`);
 
-  const allMissedNames = [...new Set([...missedDoseNames, ...missedCheckupNames])];
-  const missedCount = stats.missed;
+  const allMissedDetails = [...missedDoseDetails, ...missedCheckupDetails];
 
   // Side Panel for the Head of the Family
   return (
@@ -152,21 +172,31 @@ export default function Dashboard() {
           </div>
           <div className="card-medical bg-destructive/10 border-destructive/20 p-3 text-center text-destructive">
             <p className="text-[10px] font-bold uppercase">Missed</p>
-            <p className="text-2xl font-black">{stats.missed}</p>
+            <p className="text-2xl font-black">{missedCount}</p>
           </div>
         </div>
 
         {missedCount > 0 && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 flex items-center gap-3 animate-pulse">
-            <AlertCircle className="text-destructive h-5 w-5" />
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 flex items-center gap-3 animate-pulse shadow-sm shadow-destructive/10">
+            <AlertCircle className="text-destructive h-6 w-6 shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-bold text-destructive uppercase tracking-tight">
                 Attention Head: {missedCount} {missedCount === 1 ? 'Alert' : 'Alerts'} Missed!
               </p>
-              <p className="caption font-medium text-destructive/80 mt-0.5">
-                {allMissedNames.length > 0 
-                  ? `Please check on: ${allMissedNames.join(", ")}` 
-                  : "Please check on family members who haven't completed their schedule."}
+              <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1">
+                {stats.missedMedicines > 0 && (
+                  <span className="text-[10px] font-black bg-destructive/10 text-destructive px-1.5 py-0.5 rounded uppercase border border-destructive/20">
+                    {stats.missedMedicines} Medicine{stats.missedMedicines > 1 ? 's' : ''}
+                  </span>
+                )}
+                {stats.missedCheckups > 0 && (
+                  <span className="text-[10px] font-black bg-destructive/10 text-destructive px-1.5 py-0.5 rounded uppercase border border-destructive/20">
+                    {stats.missedCheckups} Checkup{stats.missedCheckups > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+              <p className="caption font-bold text-destructive/80 mt-1.5">
+                Please check on: {allMissedDetails.join(", ")}
               </p>
             </div>
           </div>
@@ -237,6 +267,11 @@ export default function Dashboard() {
                     scheduledDate={checkup.scheduled_date}
                     status={checkup.status}
                     onMarkCompleted={() => handleMarkCheckupCompleted(
+                      checkup.id,
+                      checkup.title,
+                      checkup.members?.name
+                    )}
+                    onMarkMissed={() => handleMarkCheckupMissed(
                       checkup.id,
                       checkup.title,
                       checkup.members?.name
