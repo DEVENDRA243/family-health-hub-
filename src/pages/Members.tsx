@@ -39,7 +39,7 @@ export default function Members() {
   const { user } = useAuth();
   const addMember = useAddMember();
   const deleteMember = useDeleteMember();
-  
+
   const isAdmin = familyInfo?.created_by === user?.id;
   const [isOpen, setIsOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -212,12 +212,12 @@ export default function Members() {
           members?.map((member) => {
             const isHead = member.user_id === familyInfo?.created_by;
             const isMe = member.user_id === user?.id;
-            
+
             // Use the name stored in the database.
             // For Discord Link joins: This is the name the Admin assigned.
             // For Code joins: This is the Gmail name saved during join.
             const displayName = member.name === 'Head' ? 'Family Head' : member.name;
-            
+
             // Logic to determine if we should show details (age, gender, conditions)
             const showDetails = member.age > 0 || (member.conditions && member.conditions.length > 0);
 
@@ -262,7 +262,7 @@ export default function Members() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         {member.invite_token && member.status === 'invited' && (
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             className="gap-2 cursor-pointer font-bold text-primary"
                             onClick={() => copyInviteLink(member.invite_token!)}
                           >
@@ -270,7 +270,7 @@ export default function Members() {
                             Copy Invite Link
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           className="text-destructive focus:text-destructive gap-2 cursor-pointer font-bold"
                           onClick={() => setMemberToDelete({ id: member.id, name: displayName })}
                         >
@@ -281,11 +281,11 @@ export default function Members() {
                     </DropdownMenu>
                   )}
                 </div>
-                
+
                 {isAdmin && member.status === 'invited' && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="w-full mt-3 h-7 text-[10px] font-black uppercase tracking-widest gap-1.5 border-warning/30 text-warning hover:bg-warning/5"
                     onClick={() => copyInviteLink(member.invite_token!)}
                   >
@@ -319,7 +319,7 @@ export default function Members() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>No, Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >

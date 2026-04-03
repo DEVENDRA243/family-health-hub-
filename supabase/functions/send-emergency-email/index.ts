@@ -89,8 +89,7 @@ Deno.serve(async (req) => {
           <h1 style="color: #ef4444; margin-top: 0;">CRITICAL EMERGENCY ALERT</h1>
           <p style="font-size: 16px;">An emergency alert has been triggered on <strong>FamilyHealth Hub</strong>.</p>
           <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
-          <p><strong>Message:</strong> ${record.message || "An emergency was triggered."}</p>
-          <p><strong>Sent at:</strong> ${new Date().toLocaleString()}</p>
+          <p><strong>Message:</strong> ${(record.message || "An emergency was triggered.").replace(/\n/g, '<br />')}</p>
           <p style="margin-top: 30px; font-size: 12px; color: #6b7280;">Please check your dashboard immediately.</p>
         </div>
       `

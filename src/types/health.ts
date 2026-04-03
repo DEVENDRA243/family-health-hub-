@@ -21,6 +21,7 @@ export type Medicine = {
   instructions: string;
   timings: string[];
   is_active: boolean;
+  members?: { name: string };
 };
 
 export type DoseStatus = 'taken' | 'missed' | 'pending';
@@ -35,7 +36,7 @@ export type Dose = {
 };
 
 export type CheckupType = 'doctor visit' | 'lab test' | 'vaccination' | 'scan';
-export type CheckupStatus = 'upcoming' | 'completed';
+export type CheckupStatus = 'upcoming' | 'completed' | 'missed';
 
 export type Checkup = {
   id: string;
@@ -45,6 +46,7 @@ export type Checkup = {
   title: string;
   scheduled_date: string;
   status: CheckupStatus;
+  members?: { name: string };
 };
 
 export type ReportType = 'PDF' | 'JPG' | 'PNG';
@@ -54,11 +56,16 @@ export type Report = {
   family_id: string;
   member_id: string;
   title: string;
-  uploaded_at: string;
-  type: ReportType;
+  date?: string;
+  type: string;
   file_url?: string;
-  members?: { name: string };
-  user_id?: string;
+  uploaded_at: string;
+  created_at?: string;
+  members?: {
+    name: string;
+    age?: number;
+    gender?: string;
+  };
 };
 
 export type FamilyInfo = {
@@ -66,4 +73,24 @@ export type FamilyInfo = {
   name: string;
   invite_code: string;
   created_by: string;
+};
+
+export type DietLog = {
+  id: string;
+  family_id: string;
+  member_id: string;
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  food_item: string;
+  calories?: number;
+  recorded_at: string;
+  members?: { name: string };
+};
+
+export type HydrationLog = {
+  id: string;
+  family_id: string;
+  member_id: string;
+  amount_ml: number;
+  recorded_at: string;
+  members?: { name: string };
 };

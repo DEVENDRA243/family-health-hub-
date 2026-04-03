@@ -1,7 +1,27 @@
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, MoreHorizontal, Loader2, Trash2, Eye, Download, X } from "lucide-react";
+import { 
+  Plus, 
+  Search, 
+  FileText, 
+  MoreVertical, 
+  Eye, 
+  Download, 
+  Trash2, 
+  Upload, 
+  X, 
+  Sparkles, 
+  Activity, 
+  ShieldAlert, 
+  Stethoscope, 
+  ClipboardList, 
+  Share2, 
+  Copy,
+  Info,
+  Loader2
+} from "lucide-react";
 import { useReports, useMembers, useAddReport, useFamilyInfo, useDeleteReport } from "@/hooks/use-health-data";
 import { useAuth } from "@/hooks/use-auth";
+import { Report } from "@/types/health";
 import { format, parseISO } from "date-fns";
 import {
   Dialog,
@@ -10,6 +30,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -44,13 +65,14 @@ export default function Reports() {
   const [deleteData, setDeleteData] = useState<{ id: string; title: string; fileUrl?: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [summaries, setSummaries] = useState<Record<string, string>>({});
+  const [isAnalyzing, setIsAnalyzing] = useState<Record<string, boolean>>({});
+  const [selectedSummaryReport, setSelectedSummaryReport] = useState<Report | null>(null);
+
   const isAdmin = familyInfo?.created_by === user?.id;
 
-  // Find the current user's member record
   const currentMember = members?.find(m => m.user_id === user?.id);
 
-  // Filter members for the dropdown: 
-  // Admin sees everyone, Members see only themselves
   const selectableMembers = isAdmin 
     ? members 
     : members?.filter(m => m.user_id === user?.id);
@@ -66,7 +88,6 @@ export default function Reports() {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
-      // Auto-detect type if not set
       const ext = selectedFile.name.split('.').pop()?.toUpperCase();
       if (ext === 'PDF' || ext === 'JPG' || ext === 'PNG') {
         setFormData(prev => ({ ...prev, type: ext as any }));
@@ -137,6 +158,240 @@ export default function Reports() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleAISummary = async (report: Report) => {
+     if (summaries[report.id]) {
+        setSelectedSummaryReport(report);
+        return;
+     }
+     
+     if (!report.file_url) {
+        toast.error("File URL is missing.");
+        return;
+     }
+
+     const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+     if (!apiKey) {
+        toast.error("OpenRouter API key is missing. Check .env configuration.");
+        return;
+     }
+
+     setIsAnalyzing(prev => ({ ...prev, [report.id]: true }));
+     
+     try {
+       const url = report.file_url;
+       const response = await fetch(url);
+       if (!response.ok) throw new Error("Failed to fetch file");
+       const blob = await response.blob();
+       
+       const extension = report.type.toLowerCase() || url.split('.').pop()?.toLowerCase() || '';
+       let mimeType = blob.type;
+       if (!mimeType || mimeType === 'application/octet-stream') {
+           if (extension === 'pdf') mimeType = 'application/pdf';
+           else if (extension === 'jpg' || extension === 'jpeg') mimeType = 'image/jpeg';
+           else if (extension === 'png') mimeType = 'image/png';
+       }
+
+       const reader = new FileReader();
+       const base64data = await new Promise<string>((resolve, reject) => {
+         reader.onloadend = () => {
+           const result = reader.result as string; 
+           resolve(result.split(',')[1]);
+         };
+         reader.onerror = reject;
+         reader.readAsDataURL(blob);
+       });
+
+       const getSummary = async (retryCount = 0): Promise<string> => {
+          const body = {
+             model: "google/gemini-2.5-flash",
+             max_tokens: 1024,
+             messages: [{
+               role: "user",
+               content: [
+                 {
+                   type: "image_url",
+                   image_url: {
+                     url: `data:${mimeType};base64,${base64data}`
+                   }
+                 },
+                 {
+                   type: "text",
+                   text: "You are a medical assistant. Analyze this medical report and provide:\n" +
+                         "- Overall health status (1 line summary)\n" +
+                         "- Key findings (bullet points in simple language)\n" +
+                         "- Any abnormal values explained in plain English\n" +
+                         "- Recommended next steps for the patient\n" +
+                         "End with: This is AI-generated and not a substitute for medical advice."
+                 }
+               ]
+             }]
+          };
+
+          try {
+              const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${apiKey}`,
+                  "HTTP-Referer": window.location.origin,
+                  "X-Title": "The Ambanis Health App"
+                },
+                body: JSON.stringify(body)
+              });
+              
+              if (res.status === 429) {
+                 throw new Error("Too many requests. Please wait a minute and try again.");
+              }
+              
+              if (!res.ok) {
+                 throw new Error(`HTTP error! status: ${res.status}`);
+              }
+              
+              const data = await res.json();
+              if (data.error) {
+                 throw new Error(data.error.message || "Failed to analyze report.");
+              }
+              return data.choices?.[0]?.message?.content || "No summary available.";
+          } catch (err: any) {
+             if (err instanceof TypeError && retryCount < 1) { 
+                return getSummary(retryCount + 1);
+             }
+             throw err;
+          }
+       };
+
+       const summaryText = await getSummary();
+       setSummaries(prev => ({ ...prev, [report.id]: summaryText }));
+       setSelectedSummaryReport(report);
+     } catch (err: any) {
+        console.error("AI Summary error:", err);
+        if (err.message && err.message.includes("Too many requests")) {
+           toast.error(err.message);
+        } else {
+           toast.error("Unable to analyze report. Please try again in a moment.");
+        }
+     } finally {
+        setIsAnalyzing(prev => ({ ...prev, [report.id]: false }));
+     }
+  };
+
+  const renderText = (str: string) => {
+      const parts = str.split(/(\*\*.*?\*\*)/g);
+      return parts.map((p, i) => {
+         if (p.startsWith('**') && p.endsWith('**')) {
+            return <strong key={i} className="font-semibold text-foreground">{p.slice(2, -2)}</strong>;
+         }
+         return <span key={i}>{p}</span>;
+      });
+  };
+
+  const formatSummary = (text: string) => {
+    if (!text) return null;
+    
+    const sections: { title: string, content: string[], type: 'status' | 'findings' | 'abnormal' | 'steps' | 'note' }[] = [];
+    let currentSection: { title: string, content: string[], type: 'status' | 'findings' | 'abnormal' | 'steps' | 'note' } | null = null;
+
+    const findOrCreateSection = (title: string, type: 'status' | 'findings' | 'abnormal' | 'steps' | 'note') => {
+      let existing = sections.find(s => s.type === type);
+      if (existing) {
+        currentSection = existing;
+      } else {
+        currentSection = { title, content: [], type };
+        sections.push(currentSection);
+      }
+    };
+
+    const lines = text.split('\n');
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed) return;
+      const lower = trimmed.toLowerCase();
+
+      if (lower.match(/^#+|status|summary|^overall/)) {
+        findOrCreateSection("Overall Health Status", 'status');
+        // If the header itself contains specific text, add it (unless it's just the word "status")
+        if (trimmed.split(' ').length > 2) currentSection?.content.push(trimmed.replace(/^#+\s*/, ''));
+      } else if (lower.includes("findings")) {
+        findOrCreateSection("Key Findings", 'findings');
+      } else if (lower.includes("abnormal")) {
+        findOrCreateSection("Abnormal Values Explained", 'abnormal');
+      } else if (lower.includes("steps") || lower.includes("recommend")) {
+        findOrCreateSection("Recommended Next Steps", 'steps');
+      } else if (lower.includes("medical advice") || lower.includes("disclaimer")) {
+        findOrCreateSection("Medical Disclaimer", 'note');
+        currentSection?.content.push(trimmed); // Add the actual disclaimer text
+      } else if (currentSection) {
+        currentSection.content.push(trimmed.replace(/^[-*]\s*/, ''));
+      } else {
+        // Fallback for stray lines
+        findOrCreateSection("Report Analysis", 'findings');
+        currentSection?.content.push(trimmed.replace(/^[-*]\s*/, ''));
+      }
+    });
+
+    // Cleanup: Remove empty sections
+    const finalSections = sections.filter(s => s.content.length > 0);
+
+    if (sections.length === 0) {
+      return (
+        <div className="p-4 rounded-xl border bg-muted/30">
+          {lines.map((l, i) => <p key={i} className="mb-2 text-sm leading-relaxed">{renderText(l)}</p>)}
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4 text-left">
+        {finalSections.map((section, sIdx) => {
+          let icon = <ClipboardList className="h-4 w-4" />;
+          let bgColor = "bg-muted/30";
+          let borderColor = "border-border/60";
+          let headerColor = "text-foreground/70";
+          
+          if (section.type === 'status') {
+            icon = <Activity className="h-4 w-4" />;
+            bgColor = "bg-blue-50/40 dark:bg-blue-900/10";
+            borderColor = "border-blue-200/50 dark:border-blue-800/50";
+            headerColor = "text-blue-700 dark:text-blue-400";
+          } else if (section.type === 'abnormal') {
+            icon = <ShieldAlert className="h-4 w-4" />;
+            bgColor = "bg-rose-50/40 dark:bg-rose-900/10";
+            borderColor = "border-rose-200/50 dark:border-rose-800/50";
+            headerColor = "text-rose-700 dark:text-rose-400";
+          } else if (section.type === 'steps') {
+            icon = <Stethoscope className="h-4 w-4" />;
+            bgColor = "bg-emerald-50/40 dark:bg-emerald-900/10";
+            borderColor = "border-emerald-200/50 dark:border-emerald-800/50";
+            headerColor = "text-emerald-700 dark:text-emerald-400";
+          } else if (section.type === 'note') {
+            icon = <Info className="h-3.5 w-3.5 text-muted-foreground" />;
+            bgColor = "bg-slate-50 dark:bg-slate-900/40";
+            borderColor = "border-slate-200 dark:border-slate-800";
+            headerColor = "text-slate-500";
+          }
+
+          return (
+            <div key={sIdx} className={`rounded-xl border ${borderColor} ${bgColor} p-4 animate-in fade-in slide-in-from-bottom-2 duration-300 fill-mode-both`} style={{ animationDelay: `${sIdx * 100}ms` }}>
+              <h4 className={`font-black flex items-center gap-2 mb-3 text-[10px] tracking-wider uppercase ${headerColor}`}>
+                {icon} {section.title}
+              </h4>
+              <div className="space-y-2">
+                {section.content.map((item, iIdx) => (
+                  <div key={iIdx} className="flex items-start gap-2.5 text-sm leading-relaxed text-muted-foreground font-medium">
+                    {section.type !== 'status' && section.type !== 'note' && (
+                       <div className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${section.type === 'abnormal' ? 'bg-rose-500/40' : section.type === 'steps' ? 'bg-emerald-500/40' : 'bg-primary/40'}`} />
+                    )}
+                    <span className={section.type === 'status' ? 'text-foreground font-bold' : ''}>{renderText(item)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -314,13 +569,27 @@ export default function Reports() {
                     >
                       <Download className="h-4 w-4" />
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-colors"
+                      onClick={() => handleAISummary(report)}
+                      disabled={isAnalyzing[report.id]}
+                      title="AI Summary"
+                    >
+                      {isAnalyzing[report.id] ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                      ) : (
+                        <Sparkles className="h-4 w-4" />
+                      )}
+                    </Button>
                   </>
                 )}
                 {(isAdmin || report.user_id === user?.id) && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground shrink-0">
-                        <MoreHorizontal className="h-4 w-4" />
+                        <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -359,6 +628,56 @@ export default function Reports() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!selectedSummaryReport} onOpenChange={(open) => !open && setSelectedSummaryReport(null)}>
+        <DialogContent className="max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
+          {/* Custom Premium Header */}
+          <div className="bg-gradient-to-r from-primary to-primary-foreground/10 px-6 py-6 text-white relative">
+             <div className="absolute top-0 right-0 p-8 opacity-10">
+                <Sparkles className="h-20 w-20 rotate-12" />
+             </div>
+             <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 animate-pulse">
+                   <Sparkles className="h-6 w-6 text-amber-300" />
+                </div>
+                <div>
+                   <DialogTitle className="text-2xl font-black tracking-tight text-white m-0">AI Summary</DialogTitle>
+                   <DialogDescription className="text-white/70 font-bold opacity-80 mt-0.5">
+                     Verified medical report analysis · {selectedSummaryReport?.title}
+                   </DialogDescription>
+                </div>
+             </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-background">
+            {selectedSummaryReport && summaries[selectedSummaryReport.id] && (
+              <div className="pb-4">
+                {formatSummary(summaries[selectedSummaryReport.id])}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="bg-muted/30 px-6 py-4 flex-row items-center justify-between border-t border-border/50">
+            <div className="flex gap-2">
+               <Button variant="ghost" size="sm" className="h-9 px-3 gap-1.5 font-bold opacity-40 hover:opacity-100 transition-opacity">
+                  <Copy className="h-4 w-4" />
+                  Copy
+               </Button>
+               <Button variant="ghost" size="sm" className="h-9 px-3 gap-1.5 font-bold opacity-40 hover:opacity-100 transition-opacity">
+                  <Share2 className="h-4 w-4" />
+                  Email
+               </Button>
+            </div>
+            <Button
+              type="button"
+              onClick={() => setSelectedSummaryReport(null)}
+              className="font-black px-6 shadow-lg shadow-primary/20"
+            >
+              DONE
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

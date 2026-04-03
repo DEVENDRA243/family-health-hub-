@@ -45,7 +45,7 @@ export default function Medicines() {
   const [isOpen, setIsOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteName, setDeleteName] = useState<string>("");
-  
+
   const isAdmin = familyInfo?.created_by === user?.id;
 
   const [formData, setFormData] = useState({
@@ -212,7 +212,7 @@ export default function Medicines() {
             const medDoses = doses?.filter(d => d.medicine_id === med.id) || [];
             const takenCount = medDoses.filter(d => d.status === 'taken').length;
             const totalCount = medDoses.length;
-            
+
             return (
               <div key={med.id} className="card-medical flex items-center gap-4 hover:border-primary/30 transition-colors group">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
@@ -233,7 +233,7 @@ export default function Medicines() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="text-right hidden sm:block mr-2">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase">Today:</span>
@@ -242,8 +242,8 @@ export default function Medicines() {
                     </span>
                   </div>
                   <div className="h-1.5 w-24 bg-muted rounded-full mt-1 overflow-hidden">
-                    <div 
-                      className="h-full bg-primary transition-all duration-500" 
+                    <div
+                      className="h-full bg-primary transition-all duration-500"
                       style={{ width: `${totalCount > 0 ? (takenCount / totalCount) * 100 : 0}%` }}
                     />
                   </div>
@@ -257,7 +257,7 @@ export default function Medicines() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         className="text-destructive focus:text-destructive gap-2 cursor-pointer font-bold"
                         onClick={() => {
                           setDeleteId(med.id);
@@ -286,7 +286,7 @@ export default function Medicines() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="font-bold">No, Keep it</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90 font-bold"
               onClick={handleDelete}
             >

@@ -1,6 +1,7 @@
 import { DaySummaryStats } from "@/components/dashboard/DaySummaryStats";
 import { DoseCard } from "@/components/dashboard/DoseCard";
 import { CheckupCard } from "@/components/dashboard/CheckupCard";
+import { SmartPillScanner } from "@/components/dashboard/SmartPillScanner";
 import { CalendarDays, Loader2, CheckCircle2, AlertCircle, History, Stethoscope } from "lucide-react";
 import { format, isPast, parse, isSameDay, parseISO } from "date-fns";
 import { useDoses, useUpdateDoseStatus, useCheckups, useUpdateCheckupStatus } from "@/hooks/use-health-data";
@@ -9,7 +10,7 @@ import { toast } from "sonner";
 export default function Dashboard() {
   const todayDate = format(new Date(), "yyyy-MM-dd");
   const todayFormatted = format(new Date(), "EEEE, MMMM d, yyyy");
-  
+
   const { data: doses, isLoading: isDosesLoading, error: dosesError } = useDoses(todayDate);
   const { data: checkups, isLoading: isCheckupsLoading, error: checkupsError } = useCheckups();
   const updateStatus = useUpdateDoseStatus();
@@ -84,7 +85,7 @@ export default function Dashboard() {
     // FORCE UPDATE: Using new Date() for more reliable local time comparison
     const scheduledTime = new Date(checkup.scheduled_date);
     const now = new Date();
-    
+
     // If it's today and the time has passed, mark as missed
     if (checkup.status === 'upcoming' && scheduledTime < now) {
       return { ...checkup, status: 'missed' as const };
@@ -204,13 +205,13 @@ export default function Dashboard() {
 
         <div>
           <h2 className="section-heading mb-3 flex items-center gap-2">
-            Today's Live Schedule 
+            Today's Live Schedule
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
             </span>
           </h2>
-          
+
           <div className="space-y-6">
             {/* MEDICINES SECTION */}
             <div className="space-y-3">
@@ -233,13 +234,13 @@ export default function Dashboard() {
                     instructions={dose.medicines?.instructions || ""}
                     status={dose.status}
                     onMarkTaken={() => handleMarkTaken(
-                      dose.id, 
-                      dose.medicines?.name, 
+                      dose.id,
+                      dose.medicines?.name,
                       dose.medicines?.members?.name
                     )}
                     onMarkMissed={() => handleMarkMissed(
-                      dose.id, 
-                      dose.medicines?.name, 
+                      dose.id,
+                      dose.medicines?.name,
                       dose.medicines?.members?.name
                     )}
                   />
@@ -284,8 +285,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Side Panel for the Head of the Family */}
+      {/* Side Panel for AI Tools & History */}
       <div className="space-y-6">
+        <SmartPillScanner />
+        
         <div className="card-medical border-primary/20 bg-primary/5">
           <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
             <History className="h-4 w-4" />
@@ -302,7 +305,7 @@ export default function Dashboard() {
                   <div key={dose.id} className="flex items-start gap-3 border-l-2 border-success pl-3 py-1">
                     <div className="flex-1">
                       <p className="text-xs">
-                        <span className="font-bold text-primary">{dose.medicines?.members?.name}</span> took 
+                        <span className="font-bold text-primary">{dose.medicines?.members?.name}</span> took
                         <span className="font-bold"> {dose.medicines?.name}</span>
                       </p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -316,7 +319,7 @@ export default function Dashboard() {
                   <div key={checkup.id} className={`flex items-start gap-3 border-l-2 ${checkup.status === 'completed' ? 'border-success' : 'border-destructive'} pl-3 py-1`}>
                     <div className="flex-1">
                       <p className="text-xs">
-                        <span className={`font-bold ${checkup.status === 'completed' ? 'text-success' : 'text-destructive'}`}>{checkup.members?.name}</span> {checkup.status === 'completed' ? 'completed' : 'missed'} 
+                        <span className={`font-bold ${checkup.status === 'completed' ? 'text-success' : 'text-destructive'}`}>{checkup.members?.name}</span> {checkup.status === 'completed' ? 'completed' : 'missed'}
                         <span className="font-bold"> {checkup.title}</span>
                       </p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -338,7 +341,7 @@ export default function Dashboard() {
         <div className="card-medical">
           <h3 className="font-bold text-sm mb-2">Head's Quick Tip</h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Red alerts appear if a dose is past its time and hasn't been marked. 
+            Red alerts appear if a dose is past its time and hasn't been marked.
             Green checks confirm the member clicked the button.
           </p>
         </div>
