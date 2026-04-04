@@ -1,12 +1,94 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Heart, Users, ArrowRight, Loader2, LogIn, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, LogIn, Sparkles, Instagram, Twitter } from "lucide-react";
 import { useCreateFamily, useFamilyInfo, useJoinFamilyByCode } from "@/hooks/use-health-data";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+
+// --- Utility Components ---
+
+const SectionWrapper = ({ children, className = "", id }: { children: React.ReactNode; className?: string; id?: string }) => {
+  return (
+    <section id={id} className={`relative w-full overflow-hidden ${className}`}>
+      {children}
+    </section>
+  );
+};
+
+const InstrumentItalic = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <span 
+    className={`not-italic ${className}`} 
+    style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic" }}
+  >
+    {children}
+  </span>
+);
+
+const CinematicVideo = ({ src, className = "", delay = 0 }: { src: string; className?: string; delay?: number }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [opacity, setOpacity] = useState(0);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    let rafId: number;
+    const fadeDuration = 0.5; // seconds
+
+    const handleUpdate = () => {
+      const { currentTime, duration } = video;
+      if (duration > 0) {
+        if (currentTime < fadeDuration) {
+          // Fade in
+          setOpacity(currentTime / fadeDuration);
+        } else if (duration - currentTime < fadeDuration + 0.05) {
+          // Fade out (slight buffer to ensure transition before end)
+          setOpacity((duration - currentTime - 0.05) / fadeDuration);
+        } else {
+          setOpacity(1);
+        }
+      }
+      rafId = requestAnimationFrame(handleUpdate);
+    };
+
+    const onEnded = () => {
+      setOpacity(0);
+      setTimeout(() => {
+        video.currentTime = 0;
+        video.play();
+      }, 100);
+    };
+
+    video.addEventListener("ended", onEnded);
+    video.addEventListener("canplay", () => {
+       setTimeout(() => video.play(), delay);
+    });
+
+    rafId = requestAnimationFrame(handleUpdate);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      video.removeEventListener("ended", onEnded);
+    };
+  }, [delay]);
+
+  return (
+    <video
+      ref={videoRef}
+      src={src}
+      className={`${className} transition-opacity duration-100 ease-linear`}
+      style={{ opacity }}
+      muted
+      autoPlay
+      playsInline
+      preload="auto"
+    />
+  );
+};
 
 export default function JoinFamily() {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -27,8 +109,8 @@ export default function JoinFamily() {
 
   if (authLoading || familyLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-maxbg pattern-checker">
-        <Loader2 className="h-16 w-16 animate-spin text-accent1" />
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <Loader2 className="h-8 w-8 animate-spin text-white/20" />
       </div>
     );
   }
@@ -80,129 +162,158 @@ export default function JoinFamily() {
       toast.success("Family created successfully!");
       navigate("/", { replace: true });
     } catch (err: any) {
-      console.error("Family creation error details:", err);
       toast.error(`Failed to create family: ${err.message || 'Unknown error'}`);
     }
   };
 
   return (
-    <div className="relative min-h-screen bg-maxbg text-maxfg overflow-x-hidden font-dm selection:bg-accent1 selection:text-white">
-      {/* Top Left Sign Out / Back Button */}
-      <div className="fixed top-6 left-6 z-50">
-        <Button
-          onClick={user ? handleGoToLogin : () => navigate("/login")}
-          className="h-auto py-3 gap-2 bg-maxbg border-4 border-accent1 text-accent1 hover:bg-accent1 hover:text-white transition-all duration-300 shadow-[4px_4px_0_#FFE600] hover:shadow-[0_0_0_#FFE600] hover:translate-x-1 hover:translate-y-1 font-outfit font-black tracking-widest uppercase rounded-full px-6"
-        >
-          <LogIn className="h-5 w-5" />
-          <span className="hidden sm:inline">{user ? "Sign Out" : "Back to Login"}</span>
-        </Button>
-      </div>
-
-      <section className="relative min-h-screen flex items-center justify-center p-6 md:p-12 z-10 py-24">
-        {/* Global Patterns */}
-        <div className="absolute inset-0 pointer-events-none z-0 mix-blend-screen opacity-30 pattern-mesh"></div>
-        <div className="absolute inset-0 pointer-events-none z-0 opacity-10 pattern-checker"></div>
-
-        {/* Massive Background Typography */}
-        <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none z-0">
-          <h1 className="text-[10rem] md:text-[22rem] font-bangers opacity-10 text-accent4 whitespace-nowrap rotate-6 animate-pulse-gentle">
-            CONNECT!
-          </h1>
+    <div className="bg-black text-white min-h-screen selection:bg-white/20">
+      <SectionWrapper className="h-screen flex flex-col">
+        {/* Background Video */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <CinematicVideo 
+            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4"
+            className="absolute inset-0 w-full h-full object-cover opacity-50"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none" />
         </div>
 
-        {/* Floating Decor */}
-        <div className="absolute top-[15%] right-[10%] animate-float z-20 hidden md:block">
-          <div className="bg-accent3/20 border-4 border-accent3 p-4 rounded-full">
-            <Users className="h-12 w-12 text-accent3 animate-spin-slow" strokeWidth={3} />
-          </div>
-        </div>
-        
-        <div className="absolute bottom-[10%] left-[8%] animate-float-reverse z-20 text-7xl hover:animate-wiggle cursor-crosshair">
-          🚀
-        </div>
-
-        {/* Main Create/Join Container (Card) */}
-        <div className="relative z-30 w-full max-w-xl group">
-          <div className="absolute inset-0 bg-accent4 border-4 border-accent2 rounded-[2rem] -rotate-2 shadow-[16px_16px_0_#7B2FFF,32px_32px_0_#FF3AF2] transition-all duration-300 group-hover:-rotate-4 group-hover:shadow-[24px_24px_0_#7B2FFF,48px_48px_0_#FF3AF2]"></div>
-          
-          <div className="relative bg-maxbg border-4 border-accent1 rounded-[2rem] p-8 md:p-12 shadow-glow-lg rotate-1 hover:rotate-0 transition-transform duration-300 backdrop-blur-md">
-            <div className="flex flex-col items-center gap-6 relative z-10 w-full">
-              <div className="flex flex-col items-center gap-2 w-full text-center mt-4">
-                <h2 className="text-4xl md:text-5xl font-outfit font-black tracking-tight uppercase text-white [text-shadow:2px_2px_0_#FF6B35,4px_4px_0_#FFE600,6px_6px_0_#00F5D4] mb-2">
-                  Family <span className="ml-3 md:ml-5">Hub</span>
-                </h2>
+        {/* Navbar */}
+        <nav className="fixed top-6 md:top-8 left-1/2 -translate-x-1/2 w-full max-w-5xl z-50 px-4 md:px-6">
+          <div className="liquid-glass rounded-full px-4 md:px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4 md:gap-8 transition-all">
+              <div className="flex items-center gap-1.5 md:gap-2 cursor-pointer shrink-0" onClick={() => navigate("/login")}>
+                <img src="/favicon.png" alt="Family Hub Logo" className="w-5 h-5 md:w-6 md:h-6 object-contain" />
+                <span className="font-bold text-xs md:text-sm tracking-[0.2em] uppercase">Family Hub</span>
               </div>
-              
-              <div className="flex w-full p-2 bg-maxmuted border-4 border-accent3 rounded-2xl gap-2 relative z-10 shadow-[4px_4px_0_#FF3AF2]">
+            </div>
+            <button 
+              onClick={user ? handleGoToLogin : () => navigate("/login")}
+              className="liquid-glass rounded-full px-4 md:px-6 py-2.5 text-[10px] tracking-[0.2em] font-bold uppercase text-white hover:bg-white/5 transition flex items-center gap-2"
+            >
+              {user ? (
+                <>
+                  <LogIn className="h-3 w-3" />
+                  <span>Sign Out</span>
+                </>
+              ) : (
+                "Login"
+              )}
+            </button>
+          </div>
+        </nav>
+
+        {/* Content */}
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4">
+          <div className="w-full max-w-lg">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="text-center mb-12"
+            >
+              <h1 
+                className="text-4xl md:text-6xl tracking-tight mb-4"
+                style={{ fontFamily: "'Instrument Serif', serif" }}
+              >
+                Join the <InstrumentItalic>Circle.</InstrumentItalic>
+              </h1>
+              <p className="text-white/60 font-light tracking-wide text-sm md:text-base">
+                Create a new hub for your family or join an existing one to sync health data.
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
+              className="liquid-glass rounded-3xl p-8 md:p-10 border border-white/10"
+            >
+              {/* Toggle Switch */}
+              <div className="flex gap-2 p-1.5 liquid-glass rounded-2xl mb-8 bg-white/5 border border-white/5">
                 <button
                   onClick={() => setIsJoining(false)}
-                  className={`flex-1 py-3 text-sm md:text-lg font-outfit font-black uppercase tracking-[0.1em] rounded-xl transition-all ${!isJoining ? 'bg-accent1 text-white shadow-[0_0_15px_rgba(255,58,242,0.5)] scale-[1.02]' : 'bg-transparent text-white/50 hover:bg-white/10'}`}
+                  className={`flex-1 py-2.5 text-xs md:text-sm font-medium rounded-xl transition-all duration-300 ${!isJoining ? 'bg-white text-black shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                 >
-                  Create New
+                  Create Family
                 </button>
                 <button
                   onClick={() => setIsJoining(true)}
-                  className={`flex-1 py-3 text-sm md:text-lg font-outfit font-black uppercase tracking-[0.1em] rounded-xl transition-all ${isJoining ? 'bg-accent5 text-white shadow-[0_0_15px_rgba(123,47,255,0.5)] scale-[1.02]' : 'bg-transparent text-white/50 hover:bg-white/10'}`}
+                  className={`flex-1 py-2.5 text-xs md:text-sm font-medium rounded-xl transition-all duration-300 ${isJoining ? 'bg-white text-black shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                 >
                   Join Existing
                 </button>
               </div>
 
-              <div className="w-full mt-2">
-                {isJoining ? (
-                  <form onSubmit={handleJoinFamily} className="space-y-6">
-                    <div className="space-y-3">
-                      <Label htmlFor="code" className="font-outfit font-black uppercase tracking-widest text-accent2 text-lg">Enter Invite Code</Label>
-                      <Input
-                        id="code"
-                        placeholder="e.g. ABC123"
-                        className="h-16 text-2xl font-black font-dm text-center tracking-[0.2em] uppercase bg-maxbg border-4 border-dashed border-accent2 text-white placeholder:text-white/20 focus:border-solid focus:border-accent5 focus:ring-accent5 rounded-2xl"
-                        value={inviteCode}
-                        onChange={(e) => setInviteCode(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <Button 
-                      type="submit" 
-                      className="w-full h-auto py-5 text-lg md:text-xl font-outfit font-black uppercase tracking-widest bg-gradient-to-r from-accent5 to-accent1 border-4 border-white rounded-full text-white shadow-[0_0_20px_rgba(123,47,255,0.8)] hover:scale-[1.02] active:scale-95 transition-all outline-none animate-gradient-shift bg-[length:200%_auto] whitespace-normal" 
-                      disabled={joinFamily.isPending}
-                    >
-                      <span className="relative z-10 flex items-center justify-center gap-3 [text-shadow:2px_2px_0_#0D0D1A]">
-                        {!user ? "Next: Sign In to Join" : joinFamily.isPending ? <Loader2 className="animate-spin w-6 h-6" /> : "Connect"} 
-                        {user && !joinFamily.isPending && <ArrowRight className="h-6 w-6 shrink-0" />}
-                      </span>
-                    </Button>
-                  </form>
-                ) : (
-                  <form onSubmit={handleCreateFamily} className="space-y-6">
-                    <div className="space-y-3">
-                      <Label htmlFor="name" className="font-outfit font-black uppercase tracking-widest text-accent4 text-lg">Family Name</Label>
-                      <Input
-                        id="name"
-                        placeholder="e.g. The Johnsons"
-                        className="h-16 text-xl font-black font-dm px-6 bg-maxbg border-4 border-dashed border-accent4 text-white placeholder:text-white/20 focus:border-solid focus:border-accent1 focus:ring-accent1 rounded-2xl"
-                        value={familyName}
-                        onChange={(e) => setFamilyName(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <Button 
-                      type="submit" 
-                      className="w-full h-auto py-5 text-lg md:text-xl font-outfit font-black uppercase tracking-widest bg-gradient-to-r from-accent4 to-accent1 border-4 border-white rounded-full text-white shadow-[0_0_20px_rgba(255,107,53,0.8)] hover:scale-[1.02] active:scale-95 transition-all outline-none animate-gradient-shift bg-[length:200%_auto] whitespace-normal" 
-                      disabled={createFamily.isPending}
-                    >
-                      <span className="relative z-10 flex items-center justify-center gap-3 [text-shadow:2px_2px_0_#0D0D1A]">
-                        {!user ? "Next: Sign In to Create" : createFamily.isPending ? <Loader2 className="animate-spin w-6 h-6" /> : "Start My Hub"} 
-                        {user && !createFamily.isPending && <Sparkles className="h-6 w-6 shrink-0" />}
-                      </span>
-                    </Button>
-                  </form>
-                )}
-              </div>
-            </div>
+              {isJoining ? (
+                <form onSubmit={handleJoinFamily} className="space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] md:text-xs tracking-widest uppercase text-white/40 ml-1">Invite Code</Label>
+                    <Input
+                      placeholder="Enter 6-digit code"
+                      className="bg-white/5 border-white/10 h-12 md:h-14 text-lg md:text-xl font-medium tracking-widest text-center uppercase placeholder:text-white/10 focus:border-white/20 transition-all rounded-2xl"
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 md:h-14 bg-white text-black hover:bg-white/90 rounded-2xl font-medium text-sm md:text-base transition-all group shadow-xl shadow-white/5"
+                    disabled={joinFamily.isPending}
+                  >
+                    {!user ? "Sign In to Join" : joinFamily.isPending ? <Loader2 className="animate-spin w-5 h-5" /> : "Connect Family"}
+                    {user && !joinFamily.isPending && <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />}
+                  </Button>
+                </form>
+              ) : (
+                <form onSubmit={handleCreateFamily} className="space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] md:text-xs tracking-widest uppercase text-white/40 ml-1">Family Name</Label>
+                    <Input
+                      placeholder="e.g. The Johnsons"
+                      className="bg-white/5 border-white/10 h-12 md:h-14 text-base md:text-lg px-6 placeholder:text-white/10 focus:border-white/20 transition-all rounded-2xl"
+                      value={familyName}
+                      onChange={(e) => setFamilyName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 md:h-14 bg-white text-black hover:bg-white/90 rounded-2xl font-medium text-sm md:text-base transition-all group shadow-xl shadow-white/5"
+                    disabled={createFamily.isPending}
+                  >
+                    {!user ? "Sign In to Create" : createFamily.isPending ? <Loader2 className="animate-spin w-5 h-5" /> : "Start Family Hub"}
+                    {user && !createFamily.isPending && <Sparkles className="ml-2 w-4 h-4 transition-transform group-hover:scale-110" />}
+                  </Button>
+                </form>
+              )}
+            </motion.div>
           </div>
         </div>
-      </section>
+
+        {/* Social Icons */}
+        <div className="fixed bottom-8 md:bottom-12 left-1/2 -translate-x-1/2 z-10 flex gap-3 md:gap-4 scale-90 md:scale-100">
+          {[Instagram, Twitter, "logo"].map((item, i) => (
+            <motion.button
+              key={i}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.6 + i * 0.1 }}
+              className="liquid-glass rounded-full p-4 text-white/60 hover:text-white hover:bg-white/5 transition"
+            >
+              {item === "logo" ? (
+                <img src="/favicon.png" alt="Logo" className="w-5 h-5 object-contain opacity-60" />
+              ) : (
+                (() => {
+                  const Icon = item as any;
+                  return <Icon className="w-5 h-5" />;
+                })()
+              )}
+            </motion.button>
+          ))}
+        </div>
+      </SectionWrapper>
     </div>
   );
 }
