@@ -21,7 +21,6 @@ export type Medicine = {
   instructions: string;
   timings: string[];
   is_active: boolean;
-  members?: { name: string };
 };
 
 export type DoseStatus = 'taken' | 'missed' | 'pending';
@@ -36,7 +35,7 @@ export type Dose = {
 };
 
 export type CheckupType = 'doctor visit' | 'lab test' | 'vaccination' | 'scan';
-export type CheckupStatus = 'upcoming' | 'completed' | 'missed';
+export type CheckupStatus = 'upcoming' | 'completed';
 
 export type Checkup = {
   id: string;
@@ -46,7 +45,6 @@ export type Checkup = {
   title: string;
   scheduled_date: string;
   status: CheckupStatus;
-  members?: { name: string };
 };
 
 export type ReportType = 'PDF' | 'JPG' | 'PNG';
@@ -56,16 +54,11 @@ export type Report = {
   family_id: string;
   member_id: string;
   title: string;
-  date?: string;
-  type: string;
-  file_url?: string;
   uploaded_at: string;
-  created_at?: string;
-  members?: {
-    name: string;
-    age?: number;
-    gender?: string;
-  };
+  type: ReportType;
+  file_url?: string;
+  members?: { name: string };
+  user_id?: string;
 };
 
 export type FamilyInfo = {

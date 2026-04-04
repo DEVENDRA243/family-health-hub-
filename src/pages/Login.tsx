@@ -118,12 +118,12 @@ export default function Login() {
         </div>
 
         {/* Navbar */}
-        <nav className="fixed top-6 md:top-8 left-1/2 -translate-x-1/2 w-full max-w-5xl z-50 px-4 md:px-6">
-          <div className="liquid-glass rounded-full px-4 md:px-6 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-4 md:gap-8 transition-all">
-              <div className="flex items-center gap-1.5 md:gap-2 cursor-pointer shrink-0" onClick={() => navigate("/")}>
+        <nav className="fixed top-6 md:top-8 left-1/2 -translate-x-1/2 w-full max-w-5xl z-50 px-2 md:px-6">
+          <div className="liquid-glass rounded-full px-2.5 md:px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 md:gap-8 transition-all">
+              <div className="flex items-center gap-1 md:gap-2 cursor-pointer shrink-0" onClick={() => navigate("/")}>
                 <img src="/favicon.png" alt="Family Hub Logo" className="w-5 h-5 md:w-6 md:h-6 object-contain" />
-                <span className="font-bold text-xs md:text-sm tracking-[0.2em] uppercase">Family Hub</span>
+                <span className="font-bold text-xs md:text-sm tracking-[0.1em] md:tracking-[0.2em] uppercase">Family Hub</span>
               </div>
               <div className="hidden md:flex items-center gap-8 text-[10px] tracking-[0.2em] font-bold uppercase text-white/40">
                 <a href="#about" className="hover:text-white transition-colors">Mission</a>
@@ -131,16 +131,16 @@ export default function Login() {
                 <a href="#philosophy" className="hover:text-white transition-colors">Safety</a>
               </div>
             </div>
-            <div className="flex items-center gap-2 md:gap-4">
+            <div className="flex items-center gap-1.5 md:gap-4">
               <button 
                 onClick={() => navigate("/join")}
-                className="liquid-glass rounded-full px-4 md:px-6 py-2.5 text-[10px] tracking-[0.2em] font-bold uppercase hover:bg-white/5 transition"
+                className="liquid-glass rounded-full px-2.5 md:px-6 py-2.5 text-[9px] md:text-[10px] tracking-[0.05em] md:tracking-[0.2em] font-bold uppercase hover:bg-white/5 transition"
               >
                 Join Family
               </button>
               <button 
                 onClick={handleGoogleLogin}
-                className="liquid-glass rounded-full px-4 md:px-6 py-2.5 text-[10px] tracking-[0.2em] font-bold uppercase hover:bg-white/5 transition whitespace-nowrap"
+                className="liquid-glass rounded-full px-2.5 md:px-6 py-2.5 text-[9px] md:text-[10px] tracking-[0.05em] md:tracking-[0.2em] font-bold uppercase hover:bg-white/5 transition whitespace-nowrap"
               >
                 Login
               </button>
@@ -154,7 +154,7 @@ export default function Login() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-8xl tracking-tight mb-8 md:mb-12 md:whitespace-nowrap text-white"
+            className="text-[2.2rem] sm:text-5xl md:text-6xl lg:text-8xl tracking-tight mb-8 md:mb-12 md:whitespace-nowrap text-white"
             style={{ fontFamily: "'Instrument Serif', serif" }}
           >
             Family health, <InstrumentItalic>perfectly in sync.</InstrumentItalic>
