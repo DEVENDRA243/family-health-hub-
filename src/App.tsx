@@ -17,32 +17,36 @@ import InviteLanding from "./pages/InviteLanding";
 import ShaderHeroDemo from "./pages/ShaderHeroDemo";
 import NotFound from "./pages/NotFound";
 
+import { ThemeProvider } from "@/components/theme-provider";
+
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/shader-demo" element={<ShaderHeroDemo />} />
-          <Route path="/join" element={<JoinFamily />} />
-          <Route path="/invite/:token" element={<InviteLanding />} />
-          <Route element={<ProtectedLayout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/members" element={<Members />} />
-            <Route path="/medicines" element={<Medicines />} />
-            <Route path="/checkups" element={<Checkups />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/shader-demo" element={<ShaderHeroDemo />} />
+            <Route path="/join" element={<JoinFamily />} />
+            <Route path="/invite/:token" element={<InviteLanding />} />
+            <Route element={<ProtectedLayout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/members" element={<Members />} />
+              <Route path="/medicines" element={<Medicines />} />
+              <Route path="/checkups" element={<Checkups />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

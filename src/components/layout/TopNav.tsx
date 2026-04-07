@@ -1,7 +1,7 @@
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/ui/sidebar";
 import { EmergencyButton } from "@/components/layout/EmergencyButton";
 import { AvatarWithFallback } from "@/components/shared/AvatarWithFallback";
-import { Bell, CheckCircle2, AlertCircle, Clock, Info, UserPlus, LogOut, LogIn, User, Mail } from "lucide-react";
+import { Bell, CheckCircle2, AlertCircle, Clock, Info, UserPlus, LogOut, LogIn, User, Mail, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import {
@@ -18,6 +18,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { useState } from "react";
 
+import { ToggleTheme } from "@/components/ui/toggle-theme";
+
 export function TopNav() {
   const { data: notifications } = useNotifications();
   const markRead = useMarkNotificationRead();
@@ -25,6 +27,7 @@ export function TopNav() {
   const { signOut, user } = useAuth();
   const { data: familyInfo } = useFamilyInfo();
   const { data: members } = useMembers();
+  const { toggleSidebar } = useSidebar();
   const navigate = useNavigate();
 
   const unreadCount = notifications?.filter(n => !n.is_read).length || 0;
@@ -57,15 +60,6 @@ export function TopNav() {
     }
   };
 
-  const handleGoToLogin = async () => {
-    try {
-      await signOut();
-      navigate("/login", { replace: true });
-    } catch (error) {
-      console.error("Logout error:", error);
-      navigate("/login");
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -79,18 +73,19 @@ export function TopNav() {
   return (
     <header className="h-14 flex items-center justify-between border-b border-border px-4 bg-card">
       <div className="flex items-center gap-2">
-        <SidebarTrigger className="text-muted-foreground" />
         <Button 
           variant="ghost" 
-          size="sm" 
-          className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 font-bold transition-all duration-200"
-          onClick={handleGoToLogin}
+          size="icon" 
+          className="text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200"
+          onClick={toggleSidebar}
+          title="Menu"
         >
-          <LogIn className="h-4 w-4" />
-          <span className="hidden sm:inline">Go to Login</span>
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">Toggle Sidebar</span>
         </Button>
       </div>
       <div className="flex items-center gap-3">
+        <ToggleTheme />
         <EmergencyButton />
         
         <DropdownMenu open={isNotificationsOpen} onOpenChange={handleOpenChange}>
