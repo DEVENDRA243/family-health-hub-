@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useMedicines } from "@/hooks/use-health-data";
-import { supabase } from "@/lib/supabase";
 
 export function SmartPillScanner() {
   const { data: medicines } = useMedicines();
@@ -27,6 +26,13 @@ export function SmartPillScanner() {
     setResult(null);
     setIsOpen(true);
     setIsAnalyzing(true);
+
+    const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+    if (!apiKey) {
+      toast.error("OpenRouter API key is missing. Check .env configuration.");
+      setIsOpen(false);
+      return;
+    }
 
     try {
       // Create preview
@@ -53,7 +59,10 @@ export function SmartPillScanner() {
         });
       }
 
-      const messages = [{
+      const body = {
+         model: "google/gemini-2.5-flash",
+         max_tokens: 1024,
+         messages: [{
            role: "user",
            content: [
              {
@@ -73,29 +82,26 @@ export function SmartPillScanner() {
                      "### Side Effects & Warnings\n(brief, plain English caution)"
              }
            ]
-      }];
+         }]
+      };
 
-      const { data, error } = await supabase.functions.invoke('analyze-medical-data', {
-        body: {
-          messages,
-          model: "google/gemini-2.0-flash-exp"
-        }
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+          "HTTP-Referer": window.location.origin,
+          "X-Title": "The Ambanis Health App"
+        },
+        body: JSON.stringify(body)
       });
       
-      if (error) {
-        console.error("Supabase function error:", error);
-        throw new Error(error.message || "Connection to AI service failed");
-      }
-      
-      if (data?.isAiError) {
-        console.error("AI service error:", data.error);
-        throw new Error(data.error || "AI service returned an error");
-      }
-      
+      if (!res.ok) throw new Error("Failed to analyze image");
+      const data = await res.json();
       setResult(data.choices?.[0]?.message?.content || "Could not identify medicine.");
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      toast.error(err.message || "Failed to analyze the medicine.");
+      toast.error("Failed to analyze the medicine.");
       setIsOpen(false);
     } finally {
       setIsAnalyzing(false);
