@@ -1,13 +1,6 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(API_KEY || "");
+import { supabase } from "./supabase";
 
 export async function analyzeMedicalReport(fileBase64: string, mimeType: string) {
-  if (!API_KEY) throw new Error("VITE_GEMINI_API_KEY is missing.");
-
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
   const prompt = `You are a medical assistant. Analyze this medical report and provide:
    - Overall health status (1 line)
    - Key findings (bullet points, simple language)
@@ -16,20 +9,34 @@ export async function analyzeMedicalReport(fileBase64: string, mimeType: string)
    Add a disclaimer: This is AI-generated, not medical advice.`;
 
   try {
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: fileBase64,
-          mimeType: mimeType,
-        },
+    const { data, error } = await supabase.functions.invoke('analyze-medical-data', {
+      body: {
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: prompt,
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:${mimeType};base64,${fileBase64}`,
+                },
+              },
+            ],
+          },
+        ],
+        model: "google/gemini-2.0-flash-exp",
       },
-    ]);
+    });
 
-    return result.response.text();
+    if (error) throw error;
+    return data.choices?.[0]?.message?.content || "No analysis available.";
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    throw new Error(error.message || "Failed to analyze report with Gemini AI");
+    console.error("AI Error:", error);
+    throw new Error(error.message || "Failed to analyze report");
   }
 }
 
@@ -37,23 +44,28 @@ export async function analyzeMedicalReport(fileBase64: string, mimeType: string)
  * Analyzes a voice transcript against a family health snapshot and returns a natural voice response.
  */
 export async function processVoiceCommand(transcript: string, snapshot: any) {
-  if (!API_KEY) {
-    return "I'm sorry, my brain is currently missing its API key. Please add it to the settings.";
-  }
-
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
   const prompt = `You are a helpful family health assistant. 
     User Question: "${transcript}"
     Current Context: ${JSON.stringify(snapshot)}
     Answer concisely in 1-2 sentences. Use the data provided.`;
 
   try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
-    return text || "I understood that, but couldn't generate a response.";
+    const { data, error } = await supabase.functions.invoke('analyze-medical-data', {
+      body: {
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        model: "google/gemini-2.0-flash-exp",
+      },
+    });
+
+    if (error) throw error;
+    return data.choices?.[0]?.message?.content?.trim() || "I understood that, but couldn't generate a response.";
   } catch (error: any) {
-    console.error("Gemini Voice Error:", error);
+    console.error("AI Voice Error:", error);
     return "I'm having trouble processing that right now.";
   }
 }
