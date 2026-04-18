@@ -172,9 +172,11 @@ export default function Reports() {
         return;
      }
 
+     const isDev = import.meta.env.DEV;
      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-     if (!apiKey) {
-        toast.error("OpenRouter API key is missing. Check .env configuration.");
+     
+     if (isDev && !apiKey) {
+        toast.error("OpenRouter API key is missing in local .env");
         return;
      }
 
@@ -231,16 +233,27 @@ export default function Reports() {
           };
 
           try {
-              const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${apiKey}`,
-                  "HTTP-Referer": window.location.origin,
-                  "X-Title": "The Ambanis Health App"
-                },
-                body: JSON.stringify(body)
-              });
+              let res;
+              if (isDev) {
+                res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${apiKey}`,
+                    "HTTP-Referer": window.location.origin,
+                    "X-Title": "The Ambanis Health App"
+                  },
+                  body: JSON.stringify(body)
+                });
+              } else {
+                res = await fetch("/api/openrouter", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json"
+                  },
+                  body: JSON.stringify(body)
+                });
+              }
               
               if (res.status === 429) {
                  throw new Error("Too many requests. Please wait a minute and try again.");
