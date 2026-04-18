@@ -229,13 +229,16 @@ export default function Reports() {
               });
               
               if (error) {
+                 console.error("Supabase function error:", error);
                  if (error.status === 429) throw new Error("Too many requests. Please wait a minute and try again.");
-                 throw error;
+                 throw new Error(error.message || "Analysis failed");
               }
               
-              if (data.error) {
-                 throw new Error(data.error.message || "Failed to analyze report.");
+              if (data?.error) {
+                 console.error("AI service error:", data.error);
+                 throw new Error(data.error || "AI service error");
               }
+              
               return data.choices?.[0]?.message?.content || "No summary available.";
           } catch (err: any) {
              if (err instanceof TypeError && retryCount < 1) { 
@@ -250,11 +253,7 @@ export default function Reports() {
        setSelectedSummaryReport(report);
      } catch (err: any) {
         console.error("AI Summary error:", err);
-        if (err.message && err.message.includes("Too many requests")) {
-           toast.error(err.message);
-        } else {
-           toast.error("Unable to analyze report. Please try again in a moment.");
-        }
+        toast.error(err.message || "Unable to analyze report. Please try again.");
      } finally {
         setIsAnalyzing(prev => ({ ...prev, [report.id]: false }));
      }

@@ -82,12 +82,20 @@ export function SmartPillScanner() {
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase function error:", error);
+        throw new Error(error.message || "AI Analysis failed");
+      }
+      
+      if (data?.error) {
+        console.error("AI service error:", data.error);
+        throw new Error(data.error || "AI service returned an error");
+      }
       
       setResult(data.choices?.[0]?.message?.content || "Could not identify medicine.");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error("Failed to analyze the medicine.");
+      toast.error(err.message || "Failed to analyze the medicine.");
       setIsOpen(false);
     } finally {
       setIsAnalyzing(false);
