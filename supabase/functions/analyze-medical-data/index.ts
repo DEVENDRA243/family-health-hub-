@@ -28,7 +28,6 @@ Deno.serve(async (req) => {
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-        "HTTP-Referer": "https://family-health-hub.vercel.app",
         "X-Title": "Family Health Hub"
       },
       body: JSON.stringify({
@@ -42,12 +41,13 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       console.error('OpenRouter error details:', JSON.stringify(data))
+      // Return 200 but with error data to avoid Supabase SDK throwing "non-2xx"
       return new Response(JSON.stringify({ 
         error: data.error?.message || `OpenRouter error: ${response.status}`,
-        details: data
+        isAiError: true
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: response.status,
+        status: 200,
       })
     }
 
