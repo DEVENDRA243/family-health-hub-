@@ -18,6 +18,11 @@ Deno.serve(async (req) => {
     const requestData = await req.json()
     console.log('Received request for model:', requestData.model)
 
+    if (!requestData.messages || !Array.isArray(requestData.messages)) {
+      console.error('Invalid messages format:', JSON.stringify(requestData))
+      throw new Error('Invalid request: messages array is required')
+    }
+
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {

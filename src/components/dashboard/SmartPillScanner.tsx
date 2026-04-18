@@ -84,12 +84,17 @@ export function SmartPillScanner() {
       
       if (error) {
         console.error("Supabase function error:", error);
-        throw new Error(error.message || "AI Analysis failed");
+        // Extract specific error message if available
+        let errorMessage = "AI Analysis failed";
+        if (typeof error === 'object' && error !== null) {
+          errorMessage = (error as any).message || (error as any).error || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
       
       if (data?.error) {
         console.error("AI service error:", data.error);
-        throw new Error(data.error || "AI service returned an error");
+        throw new Error(typeof data.error === 'string' ? data.error : (data.error.message || "AI service returned an error"));
       }
       
       setResult(data.choices?.[0]?.message?.content || "Could not identify medicine.");

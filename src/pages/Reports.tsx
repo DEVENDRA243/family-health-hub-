@@ -231,12 +231,17 @@ export default function Reports() {
               if (error) {
                  console.error("Supabase function error:", error);
                  if (error.status === 429) throw new Error("Too many requests. Please wait a minute and try again.");
-                 throw new Error(error.message || "Analysis failed");
+                 
+                 let errorMessage = "Analysis failed";
+                 if (typeof error === 'object' && error !== null) {
+                    errorMessage = (error as any).message || (error as any).error || errorMessage;
+                 }
+                 throw new Error(errorMessage);
               }
               
               if (data?.error) {
                  console.error("AI service error:", data.error);
-                 throw new Error(data.error || "AI service error");
+                 throw new Error(typeof data.error === 'string' ? data.error : (data.error.message || "AI service error"));
               }
               
               return data.choices?.[0]?.message?.content || "No summary available.";
