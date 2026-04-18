@@ -53,6 +53,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 export default function Reports() {
   const { data: reports, isLoading, error } = useReports();
@@ -171,12 +172,6 @@ export default function Reports() {
         return;
      }
 
-     const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-     if (!apiKey) {
-        toast.error("OpenRouter API key is missing. Check .env configuration.");
-        return;
-     }
-
      setIsAnalyzing(prev => ({ ...prev, [report.id]: true }));
      
      try {
@@ -204,10 +199,7 @@ export default function Reports() {
        });
 
        const getSummary = async (retryCount = 0): Promise<string> => {
-          const body = {
-             model: "google/gemini-2.5-flash",
-             max_tokens: 1024,
-             messages: [{
+          const messages = [{
                role: "user",
                content: [
                  {
@@ -226,30 +218,21 @@ export default function Reports() {
                          "End with: This is AI-generated and not a substitute for medical advice."
                  }
                ]
-             }]
-          };
+          }];
 
           try {
-              const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${apiKey}`,
-                  "HTTP-Referer": window.location.origin,
-                  "X-Title": "The Ambanis Health App"
-                },
-                body: JSON.stringify(body)
+              const { data, error } = await supabase.functions.invoke('analyze-medical-data', {
+                body: {
+                  messages,
+                  model: "google/gemini-2.0-flash-exp"
+                }
               });
               
-              if (res.status === 429) {
-                 throw new Error("Too many requests. Please wait a minute and try again.");
+              if (error) {
+                 if (error.status === 429) throw new Error("Too many requests. Please wait a minute and try again.");
+                 throw error;
               }
               
-              if (!res.ok) {
-                 throw new Error(`HTTP error! status: ${res.status}`);
-              }
-              
-              const data = await res.json();
               if (data.error) {
                  throw new Error(data.error.message || "Failed to analyze report.");
               }
