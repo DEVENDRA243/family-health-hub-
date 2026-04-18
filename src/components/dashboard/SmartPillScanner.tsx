@@ -109,12 +109,20 @@ export function SmartPillScanner() {
         });
       }
       
-      if (!res.ok) throw new Error("Failed to analyze image");
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("Vercel AI Endpoint Failed. Status:", res.status, "Message:", errText);
+        throw new Error(`Server returned ${res.status}`);
+      }
       const data = await res.json();
       setResult(data.choices?.[0]?.message?.content || "Could not identify medicine.");
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to analyze the medicine.");
+      console.error("SmartPillScanner Error:", err);
+      if (err instanceof Error) {
+        toast.error(`Fail: ${err.message}`);
+      } else {
+        toast.error("Failed to analyze the medicine.");
+      }
       setIsOpen(false);
     } finally {
       setIsAnalyzing(false);

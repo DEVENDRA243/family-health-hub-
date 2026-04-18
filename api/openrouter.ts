@@ -1,51 +1,39 @@
 export const config = {
-  runtime: 'edge',
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
 };
 
-export default async function handler(req: Request) {
+export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: { message: "Method Not Allowed" } }), { 
-      status: 405, 
-      headers: { 'Content-Type': 'application/json' } 
-    });
+    return res.status(405).json({ error: { message: "Method Not Allowed" } });
   }
 
-  // Safely read the API key from Vercel's secure environment.
-  // We use VITE_OPENROUTER_API_KEY to be backward compatible with what the user already set.
+  // Support both standard env and Vite env syntax just in case
   const apiKey = process.env.VITE_OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY;
 
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: { message: "Server API key missing. Please configure it in Vercel project settings." } }), { 
-      status: 500, 
-      headers: { 'Content-Type': 'application/json' } 
-    });
+    return res.status(500).json({ error: { message: "Server API key missing in Vercel." } });
   }
 
   try {
-    const body = await req.json();
-
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": req.headers.get("referer") || "https://family-health-hub.vercel.app",
+        "HTTP-Referer": req.headers.referer || "https://family-health-hub.vercel.app",
         "X-Title": "The Ambanis Health App"
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(req.body)
     });
 
     const data = await response.json();
-
-    return new Response(JSON.stringify(data), {
-      status: response.status,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return res.status(response.status).json(data);
   } catch (error) {
     console.error("OpenRouter API Error:", error);
-    return new Response(JSON.stringify({ error: { message: "Internal server error connecting to AI backend." } }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return res.status(500).json({ error: { message: "Internal server error connecting to AI backend." } });
   }
 }
