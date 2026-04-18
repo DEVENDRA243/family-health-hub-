@@ -15,7 +15,7 @@ export default async function handler(req: any, res: any) {
   const apiKey = process.env.VITE_OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY;
 
   if (!apiKey) {
-    return res.status(500).json({ error: { message: "Server API key missing in Vercel." } });
+    return res.status(500).json({ error: { message: "Server API key missing in Vercel settings. Ensure VITE_OPENROUTER_API_KEY is configured." } });
   }
 
   try {
@@ -32,8 +32,8 @@ export default async function handler(req: any, res: any) {
 
     const data = await response.json();
     return res.status(response.status).json(data);
-  } catch (error) {
+  } catch (error: any) {
     console.error("OpenRouter API Error:", error);
-    return res.status(500).json({ error: { message: "Internal server error connecting to AI backend." } });
+    return res.status(500).json({ error: { message: `Backend error: ${error.message || "Unknown error"}` } });
   }
 }

@@ -110,9 +110,15 @@ export function SmartPillScanner() {
       }
       
       if (!res.ok) {
-        const errText = await res.text();
-        console.error("Vercel AI Endpoint Failed. Status:", res.status, "Message:", errText);
-        throw new Error(`Server returned ${res.status}`);
+        let errMessage = `Server returned ${res.status}`;
+        try {
+           const errData = await res.json();
+           if (errData.error?.message) errMessage = errData.error.message;
+        } catch(e) {
+           const errText = await res.text();
+           console.error("Vercel error:", errText);
+        }
+        throw new Error(errMessage);
       }
       const data = await res.json();
       setResult(data.choices?.[0]?.message?.content || "Could not identify medicine.");
