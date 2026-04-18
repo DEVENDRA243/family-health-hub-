@@ -35,7 +35,7 @@ export type Dose = {
 };
 
 export type CheckupType = 'doctor visit' | 'lab test' | 'vaccination' | 'scan';
-export type CheckupStatus = 'upcoming' | 'completed';
+export type CheckupStatus = 'upcoming' | 'completed' | 'missed';
 
 export type Checkup = {
   id: string;

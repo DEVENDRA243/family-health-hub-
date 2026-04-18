@@ -90,7 +90,7 @@ export default function Reports() {
       setFile(selectedFile);
       const ext = selectedFile.name.split('.').pop()?.toUpperCase();
       if (ext === 'PDF' || ext === 'JPG' || ext === 'PNG') {
-        setFormData(prev => ({ ...prev, type: ext as any }));
+        setFormData(prev => ({ ...prev, type: ext as Report['type'] }));
       }
       if (!formData.title) {
         setFormData(prev => ({ ...prev, title: selectedFile.name.split('.')[0] }));
@@ -123,9 +123,10 @@ export default function Reports() {
       setFormData({ title: "", member_id: "", type: "PDF" });
       setFile(null);
       toast.success("Report added successfully!");
-    } catch (err: any) {
-      console.error(err);
-      const errorMessage = err.message || "Unknown error occurred";
+    } catch (err: unknown) {
+      const error = err as Error;
+      console.error(error);
+      const errorMessage = error.message || "Unknown error occurred";
       if (errorMessage.includes("bucket not found")) {
         toast.error("Upload failed: 'reports' storage bucket not found in Supabase.");
       } else if (errorMessage.includes("column \"file_url\" does not exist")) {
@@ -254,21 +255,23 @@ export default function Reports() {
                  throw new Error(data.error.message || "Failed to analyze report.");
               }
               return data.choices?.[0]?.message?.content || "No summary available.";
-          } catch (err: any) {
-             if (err instanceof TypeError && retryCount < 1) { 
-                return getSummary(retryCount + 1);
-             }
-             throw err;
+          } catch (err: unknown) {
+              const error = err as Error;
+              if (error instanceof TypeError && retryCount < 1) { 
+                 return getSummary(retryCount + 1);
+              }
+              throw error;
           }
        };
 
        const summaryText = await getSummary();
        setSummaries(prev => ({ ...prev, [report.id]: summaryText }));
        setSelectedSummaryReport(report);
-     } catch (err: any) {
-        console.error("AI Summary error:", err);
-        if (err.message && err.message.includes("Too many requests")) {
-           toast.error(err.message);
+     } catch (err: unknown) {
+        const error = err as Error;
+        console.error("AI Summary error:", error);
+        if (error.message && error.message.includes("Too many requests")) {
+           toast.error(error.message);
         } else {
            toast.error("Unable to analyze report. Please try again in a moment.");
         }
@@ -294,7 +297,7 @@ export default function Reports() {
     let currentSection: { title: string, content: string[], type: 'status' | 'findings' | 'abnormal' | 'steps' | 'note' } | null = null;
 
     const findOrCreateSection = (title: string, type: 'status' | 'findings' | 'abnormal' | 'steps' | 'note') => {
-      let existing = sections.find(s => s.type === type);
+      const existing = sections.find(s => s.type === type);
       if (existing) {
         currentSection = existing;
       } else {
@@ -507,7 +510,7 @@ export default function Reports() {
                     <Label htmlFor="type">File Type</Label>
                     <Select
                       value={formData.type}
-                      onValueChange={(value: any) => setFormData({ ...formData, type: value })}
+                      onValueChange={(value: Report['type']) => setFormData({ ...formData, type: value })}
                     >
                       <SelectTrigger id="type">
                         <SelectValue placeholder="Select type" />

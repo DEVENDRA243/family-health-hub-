@@ -2,6 +2,7 @@ import { AvatarWithFallback } from "@/components/shared/AvatarWithFallback";
 import { Button } from "@/components/ui/button";
 import { Plus, MoreHorizontal, Loader2, Trash2, Mail, Copy, CheckCircle2, Clock } from "lucide-react";
 import { useMembers, useAddMember, useDeleteMember, useFamilyInfo } from "@/hooks/use-health-data";
+import { Member } from "@/types/health";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Dialog,
@@ -46,7 +47,7 @@ export default function Members() {
   const [formData, setFormData] = useState({
     name: "",
     age: "",
-    gender: "male" as const,
+    gender: "male" as Member['gender'],
     conditions: "",
     email: "",
   });
@@ -102,7 +103,7 @@ export default function Members() {
     return (
       <div className="p-4 text-destructive bg-destructive/10 rounded-lg">
         <p className="font-bold">Error loading family members:</p>
-        <p className="text-sm">{(error as any)?.message || "Unknown error"}</p>
+        <p className="text-sm">{(error as Error)?.message || "Unknown error"}</p>
       </div>
     );
   }
@@ -153,7 +154,7 @@ export default function Members() {
                     <Label htmlFor="gender">Gender</Label>
                     <Select
                       value={formData.gender}
-                      onValueChange={(value: "male" | "female" | "other") => setFormData({ ...formData, gender: value })}
+                      onValueChange={(value: Member['gender']) => setFormData({ ...formData, gender: value })}
                     >
                       <SelectTrigger id="gender">
                         <SelectValue placeholder="Select gender" />

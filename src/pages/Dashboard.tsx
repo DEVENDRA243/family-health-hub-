@@ -75,7 +75,7 @@ export default function Dashboard() {
     return (
       <div className="p-4 text-destructive bg-destructive/10 rounded-lg">
         <p className="font-bold">Error loading dashboard data:</p>
-        <p className="text-sm">{(dosesError as any)?.message || (checkupsError as any)?.message || "Unknown error"}</p>
+        <p className="text-sm">{(dosesError as Error)?.message || (checkupsError as Error)?.message || "Unknown error"}</p>
       </div>
     );
   }
