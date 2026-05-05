@@ -2,6 +2,7 @@ import { DaySummaryStats } from "@/components/dashboard/DaySummaryStats";
 import { DoseCard } from "@/components/dashboard/DoseCard";
 import { CheckupCard } from "@/components/dashboard/CheckupCard";
 import { SmartPillScanner } from "@/components/dashboard/SmartPillScanner";
+import { AllergyScanner } from "@/components/dashboard/AllergyScanner";
 import { CalendarDays, Loader2, CheckCircle2, AlertCircle, History, Stethoscope } from "lucide-react";
 import { format, isPast, parse, isSameDay, parseISO } from "date-fns";
 import { useDoses, useUpdateDoseStatus, useCheckups, useUpdateCheckupStatus } from "@/hooks/use-health-data";
@@ -288,6 +289,7 @@ export default function Dashboard() {
       {/* Side Panel for AI Tools & History */}
       <div className="space-y-6">
         <SmartPillScanner />
+        <AllergyScanner />
         
         <div className="card-medical border-primary/20 bg-primary/5">
           <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
