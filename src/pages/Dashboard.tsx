@@ -7,7 +7,7 @@ import { CalendarDays, Loader2, CheckCircle2, AlertCircle, History, Stethoscope 
 import { format, isPast, parse, isSameDay, parseISO } from "date-fns";
 import { useDoses, useUpdateDoseStatus, useCheckups, useUpdateCheckupStatus } from "@/hooks/use-health-data";
 import { toast } from "sonner";
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export default function Dashboard() {
   const todayDate = format(new Date(), "yyyy-MM-dd");
   const todayFormatted = format(new Date(), "EEEE, MMMM d, yyyy");
@@ -288,8 +288,18 @@ export default function Dashboard() {
 
       {/* Side Panel for AI Tools & History */}
       <div className="space-y-6">
-        <SmartPillScanner />
-        <AllergyScanner />
+        <Tabs defaultValue="pills" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="pills">Pill Scanner</TabsTrigger>
+            <TabsTrigger value="allergies">Food & Allergy</TabsTrigger>
+          </TabsList>
+          <TabsContent value="pills" className="mt-4">
+            <SmartPillScanner />
+          </TabsContent>
+          <TabsContent value="allergies" className="mt-4">
+            <AllergyScanner />
+          </TabsContent>
+        </Tabs>
         
         <div className="card-medical border-primary/20 bg-primary/5">
           <h3 className="font-bold text-sm mb-4 flex items-center gap-2">

@@ -157,7 +157,7 @@ export default function Login() {
             className="text-[2.2rem] sm:text-5xl md:text-6xl lg:text-8xl tracking-tight mb-8 md:mb-12 md:whitespace-nowrap text-white"
             style={{ fontFamily: "'Instrument Serif', serif" }}
           >
-            Family health, <InstrumentItalic>perfectly in sync.</InstrumentItalic>
+            Stop the chaos of <InstrumentItalic>caregiving.</InstrumentItalic>
           </motion.h1>
 
           <motion.div 
@@ -167,7 +167,7 @@ export default function Login() {
             className="w-full max-w-xl px-4"
           >
             <p className="text-base md:text-lg text-white leading-relaxed font-light tracking-wide">
-              A coordinated ecosystem for family health. Track vitals, sync medications, and analyze reports with AI—all in one secure, shared hub.
+              Whether you're managing your parents' complex medications or your kids' allergies, Family Hub uses AI to organize it all in one secure dashboard. Never miss a dose again.
             </p>
           </motion.div>
         </div>
@@ -221,17 +221,15 @@ function AboutSection() {
           transition={{ duration: 0.6 }}
           className="text-white/40 text-xs md:text-sm tracking-widest uppercase mb-8 md:mb-12"
         >
-          THE MISSION
+          THE PROBLEM
         </motion.p>
         <motion.h2 
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
           transition={{ duration: 0.8, delay: 0.1 }}
           className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl leading-[1.1] tracking-tight max-w-5xl mb-24 md:mb-32 mx-auto md:mx-0"
         >
-          Intelligent care for <br className="hidden md:block" /> 
-          families that <InstrumentItalic className="text-white/60">support,</InstrumentItalic>{" "}
-          <InstrumentItalic className="text-white/60">protect,</InstrumentItalic>{" "}
-          and <InstrumentItalic className="text-white/60">heal.</InstrumentItalic>
+          You shouldn't have to be a <br className="hidden md:block" /> 
+          medical expert to keep your <InstrumentItalic className="text-white/60">family safe.</InstrumentItalic>
         </motion.h2>
 
         <motion.p 
@@ -258,13 +256,13 @@ function FeaturedVideoSection() {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   const leftFeatures = [
-    { title: "MEDICAL AI", desc: "AI-powered analysis of complex medical reports for instant clarity." },
-    { title: "SOS ALERTS", desc: "One-tap emergency notifications sent directly to your family circle." }
+    { title: "MEDICAL AI", desc: "Translate confusing doctor's notes and lab reports into plain, actionable English." },
+    { title: "SOS ALERTS", desc: "Peace of mind when you aren't there. One-tap emergency notifications sent directly to you." }
   ];
 
   const rightFeatures = [
-    { title: "PILL SCANNER", desc: "Smart OCR technology to effortlessly synchronize medication schedules." },
-    { title: "VITALS SYNC", desc: "Your family's health data, perfectly mirrored across all devices." }
+    { title: "PILL SCANNER", desc: "Stop typing complex prescription names. Scan a bottle and let AI sync the schedule." },
+    { title: "ALLERGY SCANNER", desc: "Scan restaurant menus or food labels to instantly spot hidden allergens for your kids." }
   ];
 
   return (
@@ -330,7 +328,7 @@ function PhilosophySection() {
           transition={{ duration: 0.8 }}
           className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl tracking-tight mb-16 md:mb-24"
         >
-          Care <InstrumentItalic className="text-white/40">x</InstrumentItalic> Connection
+          Your Family's <InstrumentItalic className="text-white/40">Safety Net</InstrumentItalic>
         </motion.h2>
 
         <div className="grid md:grid-cols-2 gap-10 md:gap-20">
@@ -352,16 +350,16 @@ function PhilosophySection() {
             className="flex flex-col justify-center gap-8 md:gap-12"
           >
             <div>
-              <p className="text-white/40 text-[10px] md:text-xs tracking-widest uppercase mb-3 md:mb-4">CHOOSE SAFETY</p>
+              <p className="text-white/40 text-[10px] md:text-xs tracking-widest uppercase mb-3 md:mb-4">REDUCE THE MENTAL LOAD</p>
               <p className="text-white/70 text-sm md:text-lg leading-relaxed">
-                Every vital sign we track is a promise of transparency. We operate at the crossroads of secure data and human empathy, turning medical complexity into peace of mind.
+                Caregiving shouldn't mean carrying a binder of medical records. We centralize everything so you can focus on loving your family, not managing their paperwork.
               </p>
             </div>
             <div className="w-full h-px bg-white/10" />
             <div>
-              <p className="text-white/40 text-[10px] md:text-xs tracking-widest uppercase mb-3 md:mb-4">EMPOWER THE CIRCLE</p>
+              <p className="text-white/40 text-[10px] md:text-xs tracking-widest uppercase mb-3 md:mb-4">PREVENT MISTAKES</p>
               <p className="text-white/70 text-sm md:text-lg leading-relaxed">
-                We believe that the best health outcomes emerge when the family loop is strong. Our process is designed to uncover risks before they become emergencies.
+                By organizing daily schedules and cross-checking allergies with AI, we help the "Head of the Family" prevent dangerous double-doses or allergic reactions.
               </p>
             </div>
           </motion.div>
