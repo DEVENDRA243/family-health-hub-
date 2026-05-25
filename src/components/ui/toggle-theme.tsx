@@ -1,16 +1,12 @@
 'use client';
 
 import React from 'react';
-import { MonitorCogIcon, MoonStarIcon, SunIcon } from 'lucide-react';
+import { MoonStarIcon, SunIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 
 const THEME_OPTIONS = [
-	{
-		icon: MonitorCogIcon,
-		value: 'system',
-	},
 	{
 		icon: SunIcon,
 		value: 'light',
@@ -22,7 +18,7 @@ const THEME_OPTIONS = [
 ];
 
 export function ToggleTheme() {
-	const { theme, setTheme } = useTheme();
+	const { theme, setTheme, resolvedTheme } = useTheme();
 
 	const [isMounted, setIsMounted] = React.useState(false);
 
@@ -31,7 +27,7 @@ export function ToggleTheme() {
 	}, []);
 
 	if (!isMounted) {
-		return <div className="flex h-8 w-24" />;
+		return <div className="flex h-8 w-16" />;
 	}
 
 	return (
@@ -48,16 +44,16 @@ export function ToggleTheme() {
 					key={option.value}
 					className={cn(
 						'relative flex size-7 cursor-pointer items-center justify-center rounded-sm transition-all duration-200',
-						theme === option.value
+						resolvedTheme === option.value
 							? 'text-foreground'
 							: 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
 					)}
 					role="radio"
-					aria-checked={theme === option.value}
+					aria-checked={resolvedTheme === option.value}
 					aria-label={`Switch to ${option.value} theme`}
 					onClick={() => setTheme(option.value)}
 				>
-					{theme === option.value && (
+					{resolvedTheme === option.value && (
 						<motion.div
 							layoutId="theme-option"
 							transition={{ type: 'spring', bounce: 0.1, duration: 0.6 }}
