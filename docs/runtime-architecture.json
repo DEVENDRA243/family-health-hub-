@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Family Health Hub runtime",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/DEVENDRA243/family-health-hub-",
+      "revision": "0613bd0a127b962ec04e07ad688e594cdfc08842"
+    },
+    "views": [
+      {
+        "id": "primary-data-path",
+        "label": "Primary data path",
+        "focus": ["caregivers", "spa", "postgrest", "postgres"],
+        "note": "Authenticated caregivers load and mutate family health records through PostgREST into PostgreSQL."
+      },
+      {
+        "id": "identity",
+        "label": "Identity",
+        "focus": ["spa", "sb-auth", "google-oauth"],
+        "note": "The SPA starts Google OAuth through Supabase Auth and keeps the JWT session on the client."
+      },
+      {
+        "id": "alerts-and-ai",
+        "label": "Alerts and AI",
+        "focus": ["spa", "edge-email", "gmail-smtp", "or-proxy", "openrouter"],
+        "note": "Emergency and schedule emails leave through the Edge Function; scanners call OpenRouter through the Vercel proxy."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "caregivers",
+      "type": "external",
+      "label": "Caregivers",
+      "sublabel": "Browser",
+      "pos": [40, 250],
+      "size": [130, 60],
+      "sources": [{ "path": "src/pages/Login.tsx", "line": 96, "end_line": 104, "label": "Google login" }]
+    },
+    {
+      "id": "spa",
+      "type": "frontend",
+      "label": "React SPA",
+      "sublabel": "Vite + TanStack Query",
+      "brand": "vercel",
+      "pos": [250, 250],
+      "size": [150, 60],
+      "sources": [
+        { "path": "src/main.tsx", "line": 5, "end_line": 9, "label": "AuthProvider" },
+        { "path": "src/App.tsx", "line": 31, "end_line": 44, "label": "routes" }
+      ]
+    },
+    {
+      "id": "google-oauth",
+      "type": "security",
+      "label": "Google OAuth",
+      "sublabel": "IdP",
+      "pos": [40, 70],
+      "size": [130, 60],
+      "sources": [{ "path": "src/pages/Login.tsx", "line": 97, "end_line": 102, "label": "signInWithOAuth" }]
+    },
+    {
+      "id": "sb-auth",
+      "type": "security",
+      "label": "Supabase Auth",
+      "sublabel": "JWT session",
+      "brand": "supabase",
+      "tag": "anon key",
+      "pos": [250, 70],
+      "size": [150, 60],
+      "sources": [
+        { "path": "src/lib/supabase.ts", "line": 10, "end_line": 13, "label": "createClient" },
+        { "path": "src/hooks/use-auth.tsx", "line": 17, "end_line": 28, "label": "getSession" }
+      ]
+    },
+    {
+      "id": "postgrest",
+      "type": "backend",
+      "label": "PostgREST",
+      "sublabel": "family_id scoped",
+      "brand": "supabase",
+      "pos": [520, 250],
+      "size": [140, 60],
+      "sources": [
+        { "path": "src/hooks/use-health-data.ts", "line": 16, "end_line": 61, "label": "family queries" },
+        { "path": "src/components/layout/ProtectedLayout.tsx", "line": 22, "end_line": 30, "label": "auth gate" }
+      ]
+    },
+    {
+      "id": "postgres",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "8 family tables",
+      "brand": "postgresql",
+      "pos": [760, 250],
+      "size": [140, 60],
+      "sources": [{ "path": "src/types/health.ts", "line": 1, "end_line": 69, "label": "table types" }]
+    },
+    {
+      "id": "storage",
+      "type": "cloud",
+      "label": "Storage",
+      "sublabel": "reports bucket",
+      "brand": "supabase",
+      "pos": [520, 70],
+      "size": [140, 60],
+      "sources": [{ "path": "src/hooks/use-health-data.ts", "line": 549, "end_line": 564, "label": "upload" }]
+    },
+    {
+      "id": "edge-email",
+      "type": "backend",
+      "label": "Edge Function",
+      "sublabel": "send-emergency-email",
+      "brand": "supabase",
+      "tag": "service role",
+      "pos": [520, 430],
+      "size": [160, 60],
+      "sources": [{ "path": "supabase/functions/send-emergency-email/index.ts", "line": 50, "end_line": 66, "label": "service role" }]
+    },
+    {
+      "id": "gmail-smtp",
+      "type": "external",
+      "label": "Gmail SMTP",
+      "sublabel": "smtp.gmail.com:465",
+      "pos": [760, 430],
+      "size": [140, 60],
+      "sources": [{ "path": "supabase/functions/send-emergency-email/index.ts", "line": 128, "end_line": 147, "label": "SMTP send" }]
+    },
+    {
+      "id": "or-proxy",
+      "type": "backend",
+      "label": "/api/openrouter",
+      "sublabel": "Vercel function",
+      "brand": "vercel",
+      "pos": [250, 430],
+      "size": [150, 60],
+      "sources": [{ "path": "api/openrouter.ts", "line": 9, "end_line": 34, "label": "proxy" }]
+    },
+    {
+      "id": "openrouter",
+      "type": "external",
+      "label": "OpenRouter",
+      "sublabel": "chat completions",
+      "brand": "openrouter",
+      "pos": [40, 430],
+      "size": [130, 60],
+      "sources": [{ "path": "src/components/dashboard/AllergyScanner.tsx", "line": 107, "end_line": 126, "label": "scanner" }]
+    }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Vercel", "wraps": ["spa", "or-proxy"] },
+    { "kind": "region", "label": "Supabase project", "wraps": ["sb-auth", "postgrest", "postgres", "storage", "edge-email"] },
+    { "kind": "security-group", "label": "Service-role bypass", "wraps": ["edge-email"] }
+  ],
+  "connections": [
+    { "id": "caregivers-to-spa", "from": "caregivers", "to": "spa", "label": "HTTPS", "variant": "emphasis" },
+    { "id": "spa-to-auth", "from": "spa", "to": "sb-auth", "label": "JWT session", "variant": "security", "fromSide": "top", "toSide": "bottom", "labelAt": [198, 185] },
+    { "id": "google-to-auth", "from": "google-oauth", "to": "sb-auth", "label": "IdP callback", "variant": "security" },
+    { "id": "spa-to-postgrest", "from": "spa", "to": "postgrest", "label": "JWT REST", "variant": "emphasis" },
+    { "id": "postgrest-to-postgres", "from": "postgrest", "to": "postgres", "label": "SQL", "variant": "emphasis" },
+    { "id": "spa-to-storage", "from": "spa", "to": "storage", "label": "reports", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "id": "spa-to-edge", "from": "spa", "to": "edge-email", "label": "invoke", "variant": "dashed", "fromSide": "bottom", "toSide": "top" },
+    { "id": "edge-to-gmail", "from": "edge-email", "to": "gmail-smtp", "label": "SMTP TLS" },
+    { "id": "spa-to-or-proxy", "from": "spa", "to": "or-proxy", "variant": "dashed", "fromSide": "bottom", "toSide": "top" },
+    { "id": "or-proxy-to-openrouter", "from": "or-proxy", "to": "openrouter", "label": "Bearer chat" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Client",
+      "items": [
+        "Vite SPA on Vercel holds the anon key and JWT; ProtectedLayout requires a family"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Data plane",
+      "items": [
+        "TanStack Query talks to PostgREST; medical files go to the reports bucket"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Trust edges",
+      "items": [
+        "Google IdP; Edge Function uses the service role; scanners proxy via /api/openrouter"
+      ]
+    }
+  ]
+}
