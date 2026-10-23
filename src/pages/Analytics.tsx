@@ -1,6 +1,7 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Loader2, TrendingUp, AlertCircle } from "lucide-react";
 import { useWeeklyStats, useMedicineStats } from "@/hooks/use-health-data";
+import { SkeletonAnalytics } from "@/components/shared/SkeletonCard";
 
 export default function Analytics() {
   const { data: weeklyData, isLoading: isWeeklyLoading, error: weeklyError } = useWeeklyStats();
@@ -10,11 +11,7 @@ export default function Analytics() {
   const error = weeklyError || medError;
 
   if (isLoading) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <SkeletonAnalytics />;
   }
 
   if (error) {

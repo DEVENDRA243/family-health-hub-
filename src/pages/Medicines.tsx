@@ -1,6 +1,7 @@
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { SkeletonMedicines } from "@/components/shared/SkeletonCard";
 import { Button } from "@/components/ui/button";
-import { Plus, Pill, MoreHorizontal, Loader2, CheckCircle2, Clock, Trash2 } from "lucide-react";
+import { Plus, Pill, MoreHorizontal, Loader2, CheckCircle2, Clock, Trash2, AlertCircle } from "lucide-react";
 import { useMedicines, useMembers, useAddMedicine, useDoses, useDeleteMedicine, useFamilyInfo } from "@/hooks/use-health-data";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
@@ -34,6 +35,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState } from "react";
 import { toast } from "sonner";
 
+type TimingSlot = {
+  hour: string;
+  minute: string;
+  period: "AM" | "PM";
+};
+
+const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
+const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
+
 export default function Medicines() {
   const { data: medicines, isLoading: isMedLoading } = useMedicines();
   const { data: members } = useMembers();
@@ -53,37 +63,88 @@ export default function Medicines() {
     dosage: "",
     member_id: "",
     instructions: "",
-    timings: "",
   });
+
+  const [formErrors, setFormErrors] = useState<{
+    name?: string;
+    dosage?: string;
+    member_id?: string;
+    timings?: string;
+  }>({});
+
+  const [timingSlots, setTimingSlots] = useState<TimingSlot[]>([
+    { hour: "08", minute: "00", period: "AM" }
+  ]);
+
+  const handleAddTimingSlot = () => {
+    setTimingSlots(prev => [...prev, { hour: "08", minute: "00", period: "PM" }]);
+    if (formErrors.timings) setFormErrors(prev => ({ ...prev, timings: undefined }));
+  };
+
+  const handleRemoveTimingSlot = (index: number) => {
+    setTimingSlots(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateTimingSlot = (index: number, field: keyof TimingSlot, value: string) => {
+    setTimingSlots(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const addPresetSlot = (hour: string, minute: string, period: "AM" | "PM") => {
+    const exists = timingSlots.some(
+      s => s.hour === hour && s.minute === minute && s.period === period
+    );
+    if (!exists) {
+      setTimingSlots(prev => [...prev, { hour, minute, period }]);
+      if (formErrors.timings) setFormErrors(prev => ({ ...prev, timings: undefined }));
+    }
+  };
 
   const handleAddMedicine = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errors: { name?: string; dosage?: string; member_id?: string; timings?: string } = {};
+
+    if (!formData.name.trim()) {
+      errors.name = "Medicine name is required.";
+    }
+    if (!formData.dosage.trim()) {
+      errors.dosage = "Dosage is required (e.g. 500mg, 1 tablet).";
+    }
     if (!formData.member_id) {
-      toast.error("Please select a family member.");
-      return;
+      errors.member_id = "Please select which family member this is for.";
     }
 
-    // Normalize timings (e.g., "2 AM" -> "02:00 AM")
-    const normalizedTimings = formData.timings.split(",").map(t => {
-      let time = t.trim().toUpperCase();
-      if (/^\d{1,2}\s*(AM|PM)$/.test(time)) {
-        const [hour, period] = time.split(/\s*(AM|PM)/);
-        time = `${hour.padStart(2, '0')}:00 ${period}`;
-      }
-      return time;
-    }).filter(t => t !== "");
+    const finalTimings = Array.from(
+      new Set(timingSlots.map(s => `${s.hour}:${s.minute} ${s.period}`))
+    );
+
+    if (finalTimings.length === 0) {
+      errors.timings = "Please configure at least one daily dose time.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast.error("Please fill in the highlighted required fields.");
+      return;
+    }
+    setFormErrors({});
 
     try {
       await addMedicine.mutateAsync({
-        name: formData.name,
-        dosage: formData.dosage,
+        name: formData.name.trim(),
+        dosage: formData.dosage.trim(),
         member_id: formData.member_id,
-        instructions: formData.instructions,
-        timings: normalizedTimings,
+        instructions: formData.instructions.trim(),
+        timings: finalTimings,
         is_active: true,
       });
       setIsOpen(false);
-      setFormData({ name: "", dosage: "", member_id: "", instructions: "", timings: "" });
+      setFormData({ name: "", dosage: "", member_id: "", instructions: "" });
+      setTimingSlots([{ hour: "08", minute: "00", period: "AM" }]);
+      setFormErrors({});
       toast.success("Medicine added successfully! It's now live on the dashboard.");
     } catch (err: any) {
       console.error(err);
@@ -103,11 +164,7 @@ export default function Medicines() {
   };
 
   if (isMedLoading) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <SkeletonMedicines />;
   }
 
   return (
@@ -118,7 +175,7 @@ export default function Medicines() {
           <p className="caption mt-1">{medicines?.length || 0} active medicines tracked</p>
         </div>
         {isAdmin && (
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) setFormErrors({}); }}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-1.5 font-bold">
                 <Plus className="h-4 w-4" />
@@ -129,35 +186,56 @@ export default function Medicines() {
               <DialogHeader>
                 <DialogTitle>Add New Medicine</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleAddMedicine} className="space-y-4 pt-4">
+              <form onSubmit={handleAddMedicine} className="space-y-4 pt-4" noValidate>
                 <div className="grid gap-2">
-                  <Label htmlFor="name">Medicine Name</Label>
+                  <Label htmlFor="name">Medicine Name *</Label>
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, name: e.target.value });
+                      if (formErrors.name) setFormErrors(prev => ({ ...prev, name: undefined }));
+                    }}
                     placeholder="e.g. Paracetamol"
-                    required
+                    className={formErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
+                  {formErrors.name && (
+                    <p className="text-xs text-destructive flex items-center gap-1 font-medium">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span>{formErrors.name}</span>
+                    </p>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="dosage">Dosage (mg/ml/count)</Label>
+                    <Label htmlFor="dosage">Dosage *</Label>
                     <Input
                       id="dosage"
                       value={formData.dosage}
-                      onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
-                      placeholder="e.g. 500mg"
-                      required
+                      onChange={(e) => {
+                        setFormData({ ...formData, dosage: e.target.value });
+                        if (formErrors.dosage) setFormErrors(prev => ({ ...prev, dosage: undefined }));
+                      }}
+                      placeholder="e.g. 500mg / 1 tablet"
+                      className={formErrors.dosage ? "border-destructive focus-visible:ring-destructive" : ""}
                     />
+                    {formErrors.dosage && (
+                      <p className="text-xs text-destructive flex items-center gap-1 font-medium">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        <span>{formErrors.dosage}</span>
+                      </p>
+                    )}
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="member">For Member</Label>
+                    <Label htmlFor="member">For Member *</Label>
                     <Select
                       value={formData.member_id}
-                      onValueChange={(value) => setFormData({ ...formData, member_id: value })}
+                      onValueChange={(value) => {
+                        setFormData({ ...formData, member_id: value });
+                        if (formErrors.member_id) setFormErrors(prev => ({ ...prev, member_id: undefined }));
+                      }}
                     >
-                      <SelectTrigger id="member">
+                      <SelectTrigger id="member" className={formErrors.member_id ? "border-destructive focus:ring-destructive" : ""}>
                         <SelectValue placeholder="Select member" />
                       </SelectTrigger>
                       <SelectContent>
@@ -168,27 +246,133 @@ export default function Medicines() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {formErrors.member_id && (
+                      <p className="text-xs text-destructive flex items-center gap-1 font-medium">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        <span>{formErrors.member_id}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="instructions">Eating Instructions</Label>
+                  <Label htmlFor="instructions">Eating Instructions (Optional)</Label>
                   <Input
                     id="instructions"
                     value={formData.instructions}
                     onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
                     placeholder="e.g. After food / Empty stomach"
-                    required
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="timings">Daily Timings (comma separated)</Label>
-                  <Input
-                    id="timings"
-                    value={formData.timings}
-                    onChange={(e) => setFormData({ ...formData, timings: e.target.value })}
-                    placeholder="e.g. 08:00 AM, 05:00 PM, 09:00 PM"
-                    required
-                  />
+                  <div className="flex items-center justify-between">
+                    <Label>Daily Timings</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-primary font-bold gap-1 hover:bg-primary/10"
+                      onClick={handleAddTimingSlot}
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add Timing
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {timingSlots.map((slot, index) => (
+                      <div key={index} className="flex items-center gap-2 bg-muted/40 p-2 rounded-lg border border-border">
+                        {/* Hour Dropdown */}
+                        <Select
+                          value={slot.hour}
+                          onValueChange={(val) => updateTimingSlot(index, "hour", val)}
+                        >
+                          <SelectTrigger className="w-[72px] bg-background font-medium">
+                            <SelectValue placeholder="Hour" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-48">
+                            {HOURS.map((h) => (
+                              <SelectItem key={h} value={h}>{h}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        <span className="font-bold text-foreground/80">:</span>
+
+                        {/* Minute Dropdown */}
+                        <Select
+                          value={slot.minute}
+                          onValueChange={(val) => updateTimingSlot(index, "minute", val)}
+                        >
+                          <SelectTrigger className="w-[72px] bg-background font-medium">
+                            <SelectValue placeholder="Min" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-48">
+                            {MINUTES.map((m) => (
+                              <SelectItem key={m} value={m}>{m}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {/* AM/PM Dropdown */}
+                        <Select
+                          value={slot.period}
+                          onValueChange={(val: "AM" | "PM") => updateTimingSlot(index, "period", val)}
+                        >
+                          <SelectTrigger className="w-[76px] bg-background font-medium">
+                            <SelectValue placeholder="AM/PM" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AM">AM</SelectItem>
+                            <SelectItem value="PM">PM</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        {/* Remove button if more than 1 slot */}
+                        {timingSlots.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10 ml-auto"
+                            onClick={() => handleRemoveTimingSlot(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Quick Presets */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold mr-1">Presets:</span>
+                    <button
+                      type="button"
+                      className="text-[11px] font-semibold bg-muted hover:bg-primary/10 hover:text-primary px-2 py-0.5 rounded border border-border transition-colors"
+                      onClick={() => addPresetSlot("08", "00", "AM")}
+                    >
+                      + 08:00 AM (Morning)
+                    </button>
+                    <button
+                      type="button"
+                      className="text-[11px] font-semibold bg-muted hover:bg-primary/10 hover:text-primary px-2 py-0.5 rounded border border-border transition-colors"
+                      onClick={() => addPresetSlot("01", "00", "PM")}
+                    >
+                      + 01:00 PM (Afternoon)
+                    </button>
+                    <button
+                      type="button"
+                      className="text-[11px] font-semibold bg-muted hover:bg-primary/10 hover:text-primary px-2 py-0.5 rounded border border-border transition-colors"
+                      onClick={() => addPresetSlot("08", "00", "PM")}
+                    >
+                      + 08:00 PM (Night)
+                    </button>
+                  </div>
+                  {formErrors.timings && (
+                    <p className="text-xs text-destructive flex items-center gap-1 font-medium mt-1">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span>{formErrors.timings}</span>
+                    </p>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button type="submit" className="w-full font-bold" disabled={addMedicine.isPending}>

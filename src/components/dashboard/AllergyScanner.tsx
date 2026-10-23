@@ -176,7 +176,7 @@ export function AllergyScanner() {
         return (
           <div key={idx} className="flex items-start gap-2 mb-2 ml-2">
              <div className="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full bg-primary/60"></div>
-             <span className="text-muted-foreground leading-relaxed flex-1">{renderText(trimmed.replace(/^[\*\-] /, ''))}</span>
+             <span className="text-muted-foreground leading-relaxed flex-1">{renderText(trimmed.replace(/^[*-] /, ''))}</span>
           </div>
         );
       } else if (trimmed.startsWith('###')) {

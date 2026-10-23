@@ -107,6 +107,28 @@ export default function JoinFamily() {
     }
   }, [familyInfo, familyLoading, navigate]);
 
+  // Restore pending invite token or join code stored before login
+  useEffect(() => {
+    if (authLoading) return;
+
+    // 1. If an invite link token was saved, route directly to the invite page
+    const pendingInviteToken = localStorage.getItem("pending_invite_token");
+    if (pendingInviteToken) {
+      localStorage.removeItem("pending_invite_token");
+      navigate(`/invite/${pendingInviteToken}`, { replace: true });
+      return;
+    }
+
+    // 2. If an invite code was saved, pre-populate and switch to join tab
+    const pendingJoinCode = localStorage.getItem("pending_join_code");
+    if (pendingJoinCode) {
+      localStorage.removeItem("pending_join_code");
+      setInviteCode(pendingJoinCode);
+      setIsJoining(true);
+      toast.info(`Restored your invite code: ${pendingJoinCode}`);
+    }
+  }, [authLoading, navigate]);
+
   if (authLoading || familyLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
@@ -140,7 +162,7 @@ export default function JoinFamily() {
     try {
       await joinFamily.mutateAsync(inviteCode);
       toast.success("Joined family successfully!");
-      navigate("/");
+      navigate("/welcome", { replace: true });
     } catch (err: any) {
       toast.error(err.message || "Failed to join family. Check the code.");
     }
@@ -160,7 +182,7 @@ export default function JoinFamily() {
     try {
       await createFamily.mutateAsync({ name: familyName, invite_code: newCode });
       toast.success("Family created successfully!");
-      navigate("/", { replace: true });
+      navigate("/welcome", { replace: true });
     } catch (err: any) {
       toast.error(`Failed to create family: ${err.message || 'Unknown error'}`);
     }

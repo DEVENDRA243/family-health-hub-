@@ -1,6 +1,7 @@
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { SkeletonCheckups } from "@/components/shared/SkeletonCard";
 import { Button } from "@/components/ui/button";
-import { Plus, CalendarCheck, Loader2, Trash2, MoreHorizontal, Clock, Stethoscope } from "lucide-react";
+import { Plus, CalendarCheck, Loader2, Trash2, MoreHorizontal, Clock, Stethoscope, AlertCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useCheckups, useMembers, useAddCheckup, useFamilyInfo, useDeleteCheckup } from "@/hooks/use-health-data";
 import { useAuth } from "@/hooks/use-auth";
@@ -52,26 +53,53 @@ export default function Checkups() {
     scheduled_date: "",
     member_id: "",
   });
+  const [formErrors, setFormErrors] = useState<{
+    title?: string;
+    member_id?: string;
+    scheduled_date?: string;
+  }>({});
 
   const handleAddCheckup = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errors: { title?: string; member_id?: string; scheduled_date?: string } = {};
+
+    if (!formData.title.trim()) {
+      errors.title = "Appointment or checkup title is required.";
+    }
     if (!formData.member_id) {
-      toast.error("Please select a family member.");
+      errors.member_id = "Please select which family member this is for.";
+    }
+    if (!formData.scheduled_date) {
+      errors.scheduled_date = "Please select a scheduled date and time.";
+    } else {
+      const parsedDate = new Date(formData.scheduled_date);
+      if (isNaN(parsedDate.getTime())) {
+        errors.scheduled_date = "Please select a valid date and time.";
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast.error("Please fill in the highlighted required fields.");
       return;
     }
+    setFormErrors({});
+
+    const parsedDate = new Date(formData.scheduled_date);
     try {
       await addCheckup.mutateAsync({
-        title: formData.title,
+        title: formData.title.trim(),
         type: formData.type,
-        scheduled_date: new Date(formData.scheduled_date).toISOString(),
+        scheduled_date: parsedDate.toISOString(),
         member_id: formData.member_id,
         status: "upcoming",
       });
       setIsOpen(false);
       setFormData({ title: "", type: "doctor visit", scheduled_date: "", member_id: "" });
+      setFormErrors({});
       toast.success("Checkup scheduled successfully!");
-    } catch (err) {
-      toast.error("Failed to schedule checkup.");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to schedule checkup.");
     }
   };
 
@@ -87,11 +115,7 @@ export default function Checkups() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <SkeletonCheckups />;
   }
 
   if (error) {
@@ -113,7 +137,7 @@ export default function Checkups() {
           <p className="caption mt-1">{upcoming.length} upcoming appointments</p>
         </div>
         {isAdmin && (
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) setFormErrors({}); }}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-1.5 font-bold">
                 <Plus className="h-4 w-4" />
@@ -124,16 +148,25 @@ export default function Checkups() {
               <DialogHeader>
                 <DialogTitle>Schedule New Checkup</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleAddCheckup} className="space-y-4 pt-4">
+              <form onSubmit={handleAddCheckup} className="space-y-4 pt-4" noValidate>
                 <div className="grid gap-2">
-                  <Label htmlFor="title">Checkup Title</Label>
+                  <Label htmlFor="title">Checkup Title *</Label>
                   <Input
                     id="title"
                     value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="e.g. Annual physical"
-                    required
+                    onChange={(e) => {
+                      setFormData({ ...formData, title: e.target.value });
+                      if (formErrors.title) setFormErrors(prev => ({ ...prev, title: undefined }));
+                    }}
+                    placeholder="e.g. Annual physical / Cardiology review"
+                    className={formErrors.title ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
+                  {formErrors.title && (
+                    <p className="text-xs text-destructive flex items-center gap-1 font-medium">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span>{formErrors.title}</span>
+                    </p>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
@@ -154,12 +187,15 @@ export default function Checkups() {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="member">For Member</Label>
+                    <Label htmlFor="member">For Member *</Label>
                     <Select
                       value={formData.member_id}
-                      onValueChange={(value) => setFormData({ ...formData, member_id: value })}
+                      onValueChange={(value) => {
+                        setFormData({ ...formData, member_id: value });
+                        if (formErrors.member_id) setFormErrors(prev => ({ ...prev, member_id: undefined }));
+                      }}
                     >
-                      <SelectTrigger id="member">
+                      <SelectTrigger id="member" className={formErrors.member_id ? "border-destructive focus:ring-destructive" : ""}>
                         <SelectValue placeholder="Select member" />
                       </SelectTrigger>
                       <SelectContent>
@@ -170,17 +206,32 @@ export default function Checkups() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {formErrors.member_id && (
+                      <p className="text-xs text-destructive flex items-center gap-1 font-medium">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        <span>{formErrors.member_id}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="date">Scheduled Date & Time</Label>
+                  <Label htmlFor="date">Scheduled Date & Time *</Label>
                   <Input
                     id="date"
                     type="datetime-local"
                     value={formData.scheduled_date}
-                    onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
-                    required
+                    onChange={(e) => {
+                      setFormData({ ...formData, scheduled_date: e.target.value });
+                      if (formErrors.scheduled_date) setFormErrors(prev => ({ ...prev, scheduled_date: undefined }));
+                    }}
+                    className={formErrors.scheduled_date ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
+                  {formErrors.scheduled_date && (
+                    <p className="text-xs text-destructive flex items-center gap-1 font-medium">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span>{formErrors.scheduled_date}</span>
+                    </p>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button type="submit" className="w-full font-bold" disabled={addCheckup.isPending}>

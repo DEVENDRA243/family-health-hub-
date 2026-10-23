@@ -4,6 +4,7 @@ import { CheckupCard } from "@/components/dashboard/CheckupCard";
 import { SmartPillScanner } from "@/components/dashboard/SmartPillScanner";
 import { AllergyScanner } from "@/components/dashboard/AllergyScanner";
 import { CalendarDays, Loader2, CheckCircle2, AlertCircle, History, Stethoscope } from "lucide-react";
+import { SkeletonDashboard } from "@/components/shared/SkeletonCard";
 import { format, isPast, parse, isSameDay, parseISO } from "date-fns";
 import { useDoses, useUpdateDoseStatus, useCheckups, useUpdateCheckupStatus } from "@/hooks/use-health-data";
 import { toast } from "sonner";
@@ -65,11 +66,7 @@ export default function Dashboard() {
   };
 
   if (isDosesLoading || isCheckupsLoading) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <SkeletonDashboard />;
   }
 
   if (dosesError || checkupsError) {
@@ -106,8 +103,11 @@ export default function Dashboard() {
 
   // Auto-identify missed doses (if time is past and still pending)
   const processedDoses = doses?.map(dose => {
-    const doseTime = parse(dose.scheduled_time, "hh:mm a", new Date());
-    if (dose.status === 'pending' && isPast(doseTime)) {
+    let doseTime = parse(dose.scheduled_time, "hh:mm a", new Date());
+    if (isNaN(doseTime.getTime())) {
+      doseTime = parse(dose.scheduled_time, "h:mm a", new Date());
+    }
+    if (dose.status === 'pending' && !isNaN(doseTime.getTime()) && isPast(doseTime)) {
       return { ...dose, status: 'missed' as const };
     }
     return dose;
@@ -140,11 +140,11 @@ export default function Dashboard() {
   // Get details of missed items for the alert bar
   const missedDoseDetails = processedDoses
     .filter(d => d.status === 'missed')
-    .map(d => `${d.medicines?.members?.name} (${d.medicines?.name})`);
+    .map(d => `${d.medicines?.members?.name || 'Family Member'} (${d.medicines?.name || 'Medicine'})`);
 
   const missedCheckupDetails = processedCheckups
     .filter(c => c.status === 'missed')
-    .map(c => `${c.members?.name} (${c.title})`);
+    .map(c => `${c.members?.name || 'Family Member'} (${c.title || 'Checkup'})`);
 
   const allMissedDetails = [...missedDoseDetails, ...missedCheckupDetails];
 

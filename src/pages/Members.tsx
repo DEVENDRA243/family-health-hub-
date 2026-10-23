@@ -1,6 +1,7 @@
 import { AvatarWithFallback } from "@/components/shared/AvatarWithFallback";
+import { SkeletonMembers } from "@/components/shared/SkeletonCard";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Loader2, Trash2, Mail, Copy, CheckCircle2, Clock } from "lucide-react";
+import { Plus, MoreHorizontal, Loader2, Trash2, Mail, Copy, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { useMembers, useAddMember, useDeleteMember, useFamilyInfo } from "@/hooks/use-health-data";
 import { Member } from "@/types/health";
 import { useAuth } from "@/hooks/use-auth";
@@ -51,24 +52,55 @@ export default function Members() {
     conditions: "",
     email: "",
   });
+  const [formErrors, setFormErrors] = useState<{
+    name?: string;
+    age?: string;
+    email?: string;
+  }>({});
 
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errors: { name?: string; age?: string; email?: string } = {};
+
+    if (!formData.name.trim()) {
+      errors.name = "Member name is required.";
+    }
+
+    const parsedAge = parseInt(formData.age, 10);
+    if (!formData.age || isNaN(parsedAge) || parsedAge < 0 || parsedAge > 130) {
+      errors.age = "Please enter an age between 0 and 130.";
+    }
+
+    if (formData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        errors.email = "Please enter a valid email address (e.g. name@domain.com).";
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast.error("Please fill in the highlighted required fields.");
+      return;
+    }
+    setFormErrors({});
+
     try {
       const isInvited = formData.email.trim() !== "";
       await addMember.mutateAsync({
-        name: formData.name,
-        age: parseInt(formData.age),
+        name: formData.name.trim(),
+        age: parsedAge,
         gender: formData.gender,
         conditions: formData.conditions.split(",").map(c => c.trim()).filter(c => c !== ""),
-        email: formData.email || null,
+        email: formData.email.trim() || null,
         status: isInvited ? 'invited' : 'manual',
       });
       setIsOpen(false);
       setFormData({ name: "", age: "", gender: "male", conditions: "", email: "" });
+      setFormErrors({});
       toast.success(isInvited ? "Member invited! Copy the link to share." : "Member added successfully!");
-    } catch (err) {
-      toast.error("Failed to add member.");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to add member.");
     }
   };
 
@@ -92,11 +124,7 @@ export default function Members() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <SkeletonMembers />;
   }
 
   if (error) {
@@ -116,7 +144,7 @@ export default function Members() {
           <p className="caption mt-1">{members?.length || 0} members in your hub</p>
         </div>
         {isAdmin && (
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) setFormErrors({}); }}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-1.5 font-bold">
                 <Plus className="h-4 w-4" />
@@ -127,28 +155,48 @@ export default function Members() {
               <DialogHeader>
                 <DialogTitle>Add Family Member</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleAddMember} className="space-y-4 pt-4">
+              <form onSubmit={handleAddMember} className="space-y-4 pt-4" noValidate>
                 <div className="grid gap-2">
-                  <Label htmlFor="name">Name</Label>
+                  <Label htmlFor="name">Name *</Label>
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g. Dad"
-                    required
+                    onChange={(e) => {
+                      setFormData({ ...formData, name: e.target.value });
+                      if (formErrors.name) setFormErrors(prev => ({ ...prev, name: undefined }));
+                    }}
+                    placeholder="e.g. Mom / Dad / Alex"
+                    className={formErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
+                  {formErrors.name && (
+                    <p className="text-xs text-destructive flex items-center gap-1 font-medium">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span>{formErrors.name}</span>
+                    </p>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="age">Age</Label>
+                    <Label htmlFor="age">Age *</Label>
                     <Input
                       id="age"
                       type="number"
+                      min="0"
+                      max="130"
                       value={formData.age}
-                      onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, age: e.target.value });
+                        if (formErrors.age) setFormErrors(prev => ({ ...prev, age: undefined }));
+                      }}
                       placeholder="e.g. 55"
-                      required
+                      className={formErrors.age ? "border-destructive focus-visible:ring-destructive" : ""}
                     />
+                    {formErrors.age && (
+                      <p className="text-xs text-destructive flex items-center gap-1 font-medium">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        <span>{formErrors.age}</span>
+                      </p>
+                    )}
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="gender">Gender</Label>
@@ -174,15 +222,25 @@ export default function Members() {
                     <Input
                       id="email"
                       type="email"
-                      className="pl-9"
+                      className={`pl-9 ${formErrors.email ? "border-destructive focus-visible:ring-destructive" : ""}`}
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, email: e.target.value });
+                        if (formErrors.email) setFormErrors(prev => ({ ...prev, email: undefined }));
+                      }}
                       placeholder="member@email.com"
                     />
                   </div>
-                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
-                    If you add an email, we'll generate a Discord-style invite link.
-                  </p>
+                  {formErrors.email ? (
+                    <p className="text-xs text-destructive flex items-center gap-1 font-medium">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span>{formErrors.email}</span>
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
+                      If you add an email, we'll generate a Discord-style invite link.
+                    </p>
+                  )}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="conditions">Medical Conditions (comma separated)</Label>

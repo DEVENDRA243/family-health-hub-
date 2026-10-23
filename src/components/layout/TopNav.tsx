@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { useNotifications, useMarkNotificationRead, useClearNotifications, useFamilyInfo, useMembers } from "@/hooks/use-health-data";
+import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead, useClearNotifications, useFamilyInfo, useMembers } from "@/hooks/use-health-data";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ import { ToggleTheme } from "@/components/ui/toggle-theme";
 export function TopNav() {
   const { data: notifications } = useNotifications();
   const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
   const clearNotifications = useClearNotifications();
   const { signOut, user } = useAuth();
   const { data: familyInfo } = useFamilyInfo();
@@ -42,12 +43,8 @@ export function TopNav() {
   const handleOpenChange = (open: boolean) => {
     setIsNotificationsOpen(open);
     if (open && hasUnread) {
-      // Mark all as read when opening the menu
-      notifications?.forEach(n => {
-        if (!n.is_read) {
-          markRead.mutate(n.id);
-        }
-      });
+      // Mark all as read with a single atomic bulk update request
+      markAllRead.mutate();
     }
   };
 
@@ -71,20 +68,23 @@ export function TopNav() {
   };
 
   return (
-    <header className="h-14 flex items-center justify-between border-b border-border px-4 bg-card">
-      <div className="flex items-center gap-2">
+    <header className="h-14 flex items-center justify-between border-b border-border px-3 sm:px-4 bg-card">
+      <div className="flex items-center gap-2 min-w-0">
         <Button 
           variant="ghost" 
           size="icon" 
-          className="text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200"
+          className="text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 shrink-0"
           onClick={toggleSidebar}
           title="Menu"
         >
           <Menu className="h-5 w-5" />
           <span className="sr-only">Toggle Sidebar</span>
         </Button>
+        <span className="text-sm font-bold tracking-tight text-foreground md:hidden truncate max-w-[130px] sm:max-w-[200px]">
+          {familyInfo?.name || "FamilyHealth Hub"}
+        </span>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3">
         <ToggleTheme />
         <EmergencyButton />
         

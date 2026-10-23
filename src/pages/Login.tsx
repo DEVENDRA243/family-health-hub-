@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
 import { ArrowRight, Instagram, Twitter } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
@@ -203,6 +203,9 @@ export default function Login() {
 
       {/* SECTION 4: PHILOSOPHY */}
       <PhilosophySection />
+
+      {/* FOOTER */}
+      <LandingFooter />
     </div>
   );
 }
@@ -366,6 +369,83 @@ function PhilosophySection() {
         </div>
       </div>
     </SectionWrapper>
+  );
+}
+
+function LandingFooter() {
+  return (
+    <footer className="w-full border-t border-white/10 bg-black/40 backdrop-blur-md py-12 px-6 text-white/60">
+      <div className="max-w-6xl mx-auto space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Brand */}
+          <div className="md:col-span-2 space-y-3">
+            <div className="flex items-center gap-2 text-white font-bold text-lg">
+              <img src="/favicon.png" alt="FamilyHealth Hub Logo" className="w-6 h-6 object-contain" />
+              <span>FamilyHealth Hub</span>
+            </div>
+            <p className="text-xs text-white/50 max-w-sm leading-relaxed">
+              Real-time family care coordination, synchronized medication tracking, and AI-assisted health report interpretation.
+            </p>
+          </div>
+
+          {/* Quick Links */}
+          <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-widest text-white/70">Platform</p>
+            <ul className="space-y-1.5 text-xs">
+              <li>
+                <Link to="/join" className="hover:text-white transition-colors">
+                  Join a Family Care Circle
+                </Link>
+              </li>
+              <li>
+                <a href="#about" className="hover:text-white transition-colors">
+                  Platform Features
+                </a>
+              </li>
+              <li>
+                <a href="mailto:support@familyhealthhub.app" className="hover:text-white transition-colors">
+                  Contact Support
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Legal Links */}
+          <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-widest text-white/70">Trust & Legal</p>
+            <ul className="space-y-1.5 text-xs">
+              <li>
+                <Link to="/privacy" className="hover:text-white transition-colors">
+                  Privacy Policy & Data Security
+                </Link>
+              </li>
+              <li>
+                <Link to="/terms" className="hover:text-white transition-colors">
+                  Terms of Service & Disclaimers
+                </Link>
+              </li>
+              <li>
+                <span className="text-[11px] text-emerald-400">
+                  HIPAA & Privacy Conscious
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Medical Disclaimer Banner */}
+        <div className="pt-6 border-t border-white/10 text-[11px] text-white/40 leading-relaxed">
+          <p>
+            <strong>Medical Disclaimer:</strong> FamilyHealth Hub is a personal digital organization tool designed to assist with family care coordination. It does not provide medical diagnosis, clinical advice, or emergency dispatch services. Always consult a certified healthcare professional regarding medical questions.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-white/40 pt-2">
+          <p>© 2026 FamilyHealth Hub. All rights reserved.</p>
+          <p>Designed with care for families everywhere.</p>
+        </div>
+      </div>
+    </footer>
   );
 }
 

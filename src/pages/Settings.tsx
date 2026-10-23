@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, RefreshCw, Trash2, Loader2 } from "lucide-react";
+import { Copy, RefreshCw, Trash2, Loader2, ShieldCheck, FileText, ExternalLink } from "lucide-react";
 import { useFamilyInfo, useUpdateFamilyInfo, useDeleteFamily } from "@/hooks/use-health-data";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import {
   AlertDialog,
@@ -145,6 +145,51 @@ export default function SettingsPage() {
               <RefreshCw className={`h-4 w-4 ${updateFamily.isPending ? 'animate-spin' : ''}`} />
             </Button>
           )}
+        </div>
+      </div>
+
+      {/* Trust & Legal Compliance Card */}
+      <div className="card-medical space-y-4">
+        <h2 className="section-heading flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5 text-primary" />
+          <span>Privacy & Legal Compliance</span>
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Review your health data privacy protections, AI document handling protocols, and terms of service.
+        </p>
+
+        <div className="grid sm:grid-cols-2 gap-3 pt-1">
+          <Link
+            to="/privacy"
+            className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-card/60 hover:bg-muted/60 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <ShieldCheck className="h-4 w-4" />
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-bold text-foreground">Privacy Policy</p>
+                <p className="text-[11px] text-muted-foreground">Health data & encryption rights</p>
+              </div>
+            </div>
+            <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+          </Link>
+
+          <Link
+            to="/terms"
+            className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-card/60 hover:bg-muted/60 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                <FileText className="h-4 w-4" />
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-bold text-foreground">Terms of Service</p>
+                <p className="text-[11px] text-muted-foreground">Platform agreement & disclaimers</p>
+              </div>
+            </div>
+            <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+          </Link>
         </div>
       </div>
 

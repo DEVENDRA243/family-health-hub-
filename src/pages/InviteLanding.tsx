@@ -40,6 +40,7 @@ const InviteLanding = () => {
         try {
           hasAttemptedJoin.current = true;
           console.log("Auto-joining family with token:", token);
+          localStorage.removeItem("pending_invite_token");
           await joinFamily.mutateAsync(token || "");
           toast.success("Successfully joined the family!");
           navigate("/", { replace: true });
@@ -51,7 +52,7 @@ const InviteLanding = () => {
       };
       performAutoJoin();
     }
-  }, [user, member, memberLoading, authLoading, token, navigate, joinFamily]);
+  }, [user, member, memberLoading, authLoading, token, navigate]);
 
   const handleJoin = async () => {
     if (!user) {
@@ -62,9 +63,10 @@ const InviteLanding = () => {
     }
 
     try {
+      localStorage.removeItem("pending_invite_token");
       await joinFamily.mutateAsync(token || "");
       toast.success("Successfully joined the family!");
-      navigate("/");
+      navigate("/welcome", { replace: true });
     } catch (error: any) {
       toast.error(error.message || "Failed to join family");
     }

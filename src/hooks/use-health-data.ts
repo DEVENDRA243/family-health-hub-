@@ -182,6 +182,27 @@ export const useDeleteMember = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // 1. Find all medicines belonging to this member to clean up their doses
+      const { data: memberMedicines } = await supabase
+        .from('medicines')
+        .select('id')
+        .eq('member_id', id);
+
+      const medIds = memberMedicines?.map(m => m.id) || [];
+      if (medIds.length > 0) {
+        await supabase.from('doses').delete().in('medicine_id', medIds);
+      }
+
+      // 2. Delete medicines for this member
+      await supabase.from('medicines').delete().eq('member_id', id);
+
+      // 3. Delete checkups for this member
+      await supabase.from('checkups').delete().eq('member_id', id);
+
+      // 4. Delete reports for this member
+      await supabase.from('reports').delete().eq('member_id', id);
+
+      // 5. Finally delete the member record
       const { error } = await supabase
         .from('members')
         .delete()
@@ -192,6 +213,10 @@ export const useDeleteMember = () => {
       queryClient.invalidateQueries({ queryKey: ['members'] });
       queryClient.invalidateQueries({ queryKey: ['medicines'] });
       queryClient.invalidateQueries({ queryKey: ['doses'] });
+      queryClient.invalidateQueries({ queryKey: ['checkups'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      queryClient.invalidateQueries({ queryKey: ['weekly-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['medicine-stats'] });
     },
   });
 };
@@ -264,6 +289,10 @@ export const useDeleteMedicine = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // 1. Delete associated doses first to satisfy foreign key constraints
+      await supabase.from('doses').delete().eq('medicine_id', id);
+
+      // 2. Delete the medicine record
       const { error } = await supabase
         .from('medicines')
         .delete()
@@ -273,6 +302,8 @@ export const useDeleteMedicine = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['medicines'] });
       queryClient.invalidateQueries({ queryKey: ['doses'] });
+      queryClient.invalidateQueries({ queryKey: ['weekly-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['medicine-stats'] });
     },
   });
 };
@@ -284,14 +315,73 @@ export const useDoses = (date: string) => {
     queryKey: ['doses', date, family?.id],
     queryFn: async () => {
       if (!family) return [];
-      const { data, error } = await supabase
+
+      // 1. Fetch existing doses for this date
+      const { data: existingDoses, error: dosesError } = await supabase
         .from('doses')
         .select('*, medicines(*, members(name))')
         .eq('family_id', family.id)
         .eq('date', date)
         .order('scheduled_time', { ascending: true });
-      if (error) throw error;
-      return data;
+
+      if (dosesError) throw dosesError;
+
+      // 2. Fetch active medicines to guarantee recurring daily doses are generated
+      const { data: activeMedicines, error: medsError } = await supabase
+        .from('medicines')
+        .select('id, timings, is_active')
+        .eq('family_id', family.id)
+        .eq('is_active', true);
+
+      if (medsError) throw medsError;
+
+      // 3. Find any active medicines/timings that do not yet have a dose record for this date
+      const missingDoses: Array<{
+        family_id: string;
+        medicine_id: string;
+        scheduled_time: string;
+        status: 'pending';
+        date: string;
+      }> = [];
+
+      const currentDoses = existingDoses || [];
+
+      for (const med of activeMedicines || []) {
+        if (!Array.isArray(med.timings)) continue;
+        for (const timing of med.timings) {
+          const exists = currentDoses.some(
+            d => d.medicine_id === med.id && d.scheduled_time === timing
+          );
+          if (!exists) {
+            missingDoses.push({
+              family_id: family.id,
+              medicine_id: med.id,
+              scheduled_time: timing,
+              status: 'pending',
+              date: date,
+            });
+          }
+        }
+      }
+
+      // 4. If missing doses exist, insert them and fetch the complete refreshed list
+      if (missingDoses.length > 0) {
+        const { error: insertError } = await supabase.from('doses').insert(missingDoses);
+        if (!insertError) {
+          const { data: refreshedDoses, error: refreshError } = await supabase
+            .from('doses')
+            .select('*, medicines(*, members(name))')
+            .eq('family_id', family.id)
+            .eq('date', date)
+            .order('scheduled_time', { ascending: true });
+
+          if (!refreshError && refreshedDoses) {
+            return refreshedDoses;
+          }
+        }
+      }
+
+      return currentDoses;
     },
     enabled: !!family,
   });
@@ -346,7 +436,7 @@ export const useWeeklyStats = () => {
       const last7Days = Array.from({ length: 7 }, (_, i) => {
         const d = new Date();
         d.setDate(today.getDate() - (6 - i));
-        return d.toISOString().split('T')[0];
+        return format(d, "yyyy-MM-dd");
       });
 
       const { data, error } = await supabase
@@ -397,17 +487,22 @@ export const useMedicineStats = () => {
 
       return medicines.map(med => {
         const medDoses = doses?.filter(d => d.medicine_id === med.id) || [];
-        const total = medDoses.length;
         const taken = medDoses.filter(d => d.status === 'taken').length;
-        const adherence = total > 0 ? Math.round((taken / total) * 100) : 0;
+        const missed = medDoses.filter(d => d.status === 'missed').length;
+        const evaluated = taken + missed;
+
+        // Adherence is measured from due/completed doses (taken vs missed).
+        // If all scheduled doses are currently pending/upcoming, default to 100% (on track).
+        const adherence = evaluated > 0 ? Math.round((taken / evaluated) * 100) : 100;
 
         return {
           id: med.id,
           name: med.name,
           memberName: (med.members as any)?.name || 'Unknown',
           adherence,
-          total,
-          taken
+          total: evaluated > 0 ? evaluated : medDoses.length,
+          taken,
+          missed
         };
       });
     },
@@ -856,6 +951,25 @@ export const useMarkNotificationRead = () => {
         .from('notifications')
         .update({ is_read: true })
         .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+};
+
+export const useMarkAllNotificationsRead = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async () => {
+      if (!user) return;
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
       if (error) throw error;
     },
     onSuccess: () => {

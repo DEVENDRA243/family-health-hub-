@@ -21,7 +21,9 @@ import {
 } from "lucide-react";
 import { useReports, useMembers, useAddReport, useFamilyInfo, useDeleteReport } from "@/hooks/use-health-data";
 import { useAuth } from "@/hooks/use-auth";
+import { analyzeMedicalReport } from "@/lib/gemini";
 import { Report } from "@/types/health";
+import { SkeletonReports } from "@/components/shared/SkeletonCard";
 import { format, parseISO } from "date-fns";
 import {
   Dialog,
@@ -172,11 +174,12 @@ export default function Reports() {
         return;
      }
 
+     const hasGeminiKey = !!import.meta.env.VITE_GEMINI_API_KEY;
      const isDev = import.meta.env.DEV;
      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
      
-     if (isDev && !apiKey) {
-        toast.error("OpenRouter API key is missing in local .env");
+     if (!hasGeminiKey && isDev && !apiKey) {
+        toast.error("AI API key is missing. Check your .env configuration.");
         return;
      }
 
@@ -277,7 +280,17 @@ export default function Reports() {
           }
        };
 
-       const summaryText = await getSummary();
+       let summaryText = "";
+       if (hasGeminiKey) {
+         try {
+           summaryText = await analyzeMedicalReport(base64data, mimeType);
+         } catch (geminiError: any) {
+           console.warn("Direct Gemini analysis encountered an issue, trying OpenRouter fallback:", geminiError);
+         }
+       }
+       if (!summaryText) {
+         summaryText = await getSummary();
+       }
        setSummaries(prev => ({ ...prev, [report.id]: summaryText }));
        setSelectedSummaryReport(report);
      } catch (err: unknown) {
@@ -411,11 +424,7 @@ export default function Reports() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <SkeletonReports />;
   }
 
   if (error) {

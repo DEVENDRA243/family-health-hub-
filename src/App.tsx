@@ -16,8 +16,13 @@ import JoinFamily from "./pages/JoinFamily";
 import InviteLanding from "./pages/InviteLanding";
 import ShaderHeroDemo from "./pages/ShaderHeroDemo";
 import NotFound from "./pages/NotFound";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import Welcome from "./pages/Welcome";
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { PageMetaUpdater } from "@/components/shared/PageMeta";
+import { CookieConsentBanner } from "@/components/shared/CookieConsentBanner";
 
 const queryClient = new QueryClient();
 
@@ -28,13 +33,18 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <PageMetaUpdater />
+          <CookieConsentBanner />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/shader-demo" element={<ShaderHeroDemo />} />
             <Route path="/join" element={<JoinFamily />} />
             <Route path="/invite/:token" element={<InviteLanding />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
             <Route element={<ProtectedLayout />}>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/welcome" element={<Welcome />} />
               <Route path="/members" element={<Members />} />
               <Route path="/medicines" element={<Medicines />} />
               <Route path="/checkups" element={<Checkups />} />
