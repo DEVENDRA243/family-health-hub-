@@ -85,7 +85,7 @@ const CinematicVideo = ({ src, className = "", delay = 0 }: { src: string; class
       muted
       autoPlay
       playsInline
-      preload="auto"
+      preload="none"
       aria-label="Family caregiving ambient background video"
     />
   );
@@ -129,14 +129,6 @@ export default function JoinFamily() {
       toast.info(`Restored your invite code: ${pendingJoinCode}`);
     }
   }, [authLoading, navigate]);
-
-  if (authLoading || familyLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <Loader2 className="h-8 w-8 animate-spin text-white/20" />
-      </div>
-    );
-  }
 
   const handleGoToLogin = async () => {
     try {
@@ -229,12 +221,7 @@ export default function JoinFamily() {
         {/* Content */}
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4">
           <div className="w-full max-w-lg">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="text-center mb-12"
-            >
+            <div className="text-center mb-12 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <h1 
                 className="text-4xl md:text-6xl tracking-tight mb-4"
                 style={{ fontFamily: "'Instrument Serif', serif" }}
@@ -244,12 +231,12 @@ export default function JoinFamily() {
               <p className="text-white/60 font-light tracking-wide text-sm md:text-base">
                 Create a new hub for your family or join an existing one to sync health data.
               </p>
-            </motion.div>
+            </div>
 
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0.9, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
               className="liquid-glass rounded-3xl p-8 md:p-10 border border-white/10"
             >
               {/* Toggle Switch */}

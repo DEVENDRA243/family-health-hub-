@@ -10,8 +10,13 @@ import { Heart } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { PageMetaUpdater } from "@/components/shared/PageMeta";
 import { CookieConsentBanner } from "@/components/shared/CookieConsentBanner";
+import { OfflineBanner } from "@/components/shared/OfflineBanner";
 
 // Lazy-loaded routes for optimal initial bundle size and near-instant FCP
+import Login from "./pages/Login";
+import JoinFamily from "./pages/JoinFamily";
+
+// Lazy-loaded secondary pages (loaded only when navigating inside the hub)
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Members = lazy(() => import("./pages/Members"));
 const Medicines = lazy(() => import("./pages/Medicines"));
@@ -19,8 +24,6 @@ const Checkups = lazy(() => import("./pages/Checkups"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const SettingsPage = lazy(() => import("./pages/Settings"));
-const Login = lazy(() => import("./pages/Login"));
-const JoinFamily = lazy(() => import("./pages/JoinFamily"));
 const InviteLanding = lazy(() => import("./pages/InviteLanding"));
 const ShaderHeroDemo = lazy(() => import("./pages/ShaderHeroDemo"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -55,6 +58,7 @@ const App = () => (
         <BrowserRouter>
           <PageMetaUpdater />
           <CookieConsentBanner />
+          <OfflineBanner />
           <Suspense fallback={<PageSuspenseFallback />}>
             <Routes>
               <Route path="/login" element={<Login />} />

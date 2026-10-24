@@ -84,7 +84,7 @@ const CinematicVideo = ({ src, className = "", delay = 0 }: { src: string; class
       muted
       autoPlay
       playsInline
-      preload="auto"
+      preload="none"
     />
   );
 };
@@ -150,27 +150,19 @@ export default function Login() {
         </nav>
 
         {/* Hero Content */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center -translate-y-[2%] md:-translate-y-[5%] px-4">
-          <motion.h1 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center -translate-y-[2%] md:-translate-y-[5%] px-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <h1 
             className="text-[2.2rem] sm:text-5xl md:text-6xl lg:text-8xl tracking-tight mb-8 md:mb-12 md:whitespace-nowrap text-white"
             style={{ fontFamily: "'Instrument Serif', serif" }}
           >
             Stop the chaos of <InstrumentItalic>caregiving.</InstrumentItalic>
-          </motion.h1>
+          </h1>
 
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-            className="w-full max-w-xl px-4"
-          >
+          <div className="w-full max-w-xl px-4">
             <p className="text-base md:text-lg text-white leading-relaxed font-light tracking-wide">
               Whether you're managing your parents' complex medications or your kids' allergies, Family Hub uses AI to organize it all in one secure dashboard. Never miss a dose again.
             </p>
-          </motion.div>
+          </div>
         </div>
 
         {/* Social Icons */}
@@ -277,6 +269,7 @@ function FeaturedVideoSection() {
           src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260402_054547_9875cfc5-155a-4229-8ec8-b7ba7125cbf8.mp4"
           className="absolute inset-0 w-full h-full object-cover scale-105"
           muted autoPlay loop playsInline
+          preload="none"
           aria-label="Caregiver organizing medications video demonstration"
         />
         {/* Gradient overlays to ensure text/card readability and smooth section transitions */}
@@ -346,6 +339,7 @@ function PhilosophySection() {
               src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260324_151826_c7218672-6e92-402c-9e45-f1e0f454bdc4.mp4"
               className="w-full h-full object-cover"
               muted autoPlay loop playsInline
+              preload="none"
               aria-label="Family health synchronization in action video"
             />
           </motion.div>
