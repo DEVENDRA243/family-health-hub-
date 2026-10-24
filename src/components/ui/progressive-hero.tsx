@@ -92,6 +92,7 @@
          loop 
          muted 
          playsInline 
+         aria-label="Caregiving ambient background video"
        /> 
        {/* Overlay for readability */} 
        <div className="absolute inset-0 bg-black/80 z-10" /> 

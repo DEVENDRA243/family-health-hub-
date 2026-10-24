@@ -86,6 +86,7 @@ const CinematicVideo = ({ src, className = "", delay = 0 }: { src: string; class
       autoPlay
       playsInline
       preload="auto"
+      aria-label="Family caregiving ambient background video"
     />
   );
 };
@@ -205,7 +206,7 @@ export default function JoinFamily() {
           <div className="liquid-glass rounded-full px-4 md:px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-4 md:gap-8 transition-all">
               <div className="flex items-center gap-1.5 md:gap-2 cursor-pointer shrink-0" onClick={() => navigate("/login")}>
-                <img src="/favicon.png" alt="Family Hub Logo" className="w-5 h-5 md:w-6 md:h-6 object-contain" />
+                <img src="/favicon.png" alt="FamilyHealth Hub Logo" className="w-5 h-5 md:w-6 md:h-6 object-contain" />
                 <span className="font-bold text-xs md:text-sm tracking-[0.2em] uppercase">Family Hub</span>
               </div>
             </div>
@@ -325,7 +326,7 @@ export default function JoinFamily() {
               className="liquid-glass rounded-full p-4 text-white/60 hover:text-white hover:bg-white/5 transition"
             >
               {item === "logo" ? (
-                <img src="/favicon.png" alt="Logo" className="w-5 h-5 object-contain opacity-60" />
+                <img src="/favicon.png" alt="FamilyHealth Hub Logo Icon" className="w-5 h-5 object-contain opacity-60" />
               ) : (
                 (() => {
                   const Icon = item as any;

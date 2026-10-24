@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useMembers } from "@/hooks/use-health-data";
+import { trackEvent } from "@/lib/analytics";
 
 export function AllergyScanner() {
   const { data: members } = useMembers();
@@ -139,6 +140,7 @@ export function AllergyScanner() {
       }
       const data = await res.json();
       setResult(data.choices?.[0]?.message?.content || "Could not identify the food.");
+      trackEvent("allergy_scanner_used", { success: true });
     } catch (err) {
       console.error("AllergyScanner Error:", err);
       if (err instanceof Error) {
@@ -269,7 +271,7 @@ export function AllergyScanner() {
           <div className="flex-1 overflow-y-auto custom-scrollbar px-1 min-h-[300px]">
             {imagePreview && (
               <div className="mb-4 rounded-xl overflow-hidden border border-border relative bg-muted h-32 flex items-center justify-center">
-                 <img src={imagePreview} alt="Captured food" className="w-full h-full object-cover opacity-60" />
+                 <img src={imagePreview} alt="Captured food meal or ingredient packaging for allergen cross-checking" className="w-full h-full object-cover opacity-60" />
                  {isAnalyzing && (
                     <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] flex flex-col items-center justify-center z-10">
                        <Loader2 className="h-8 w-8 animate-spin text-orange-500 mb-2 shadow-sm" />

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { trackPageView } from "@/lib/analytics";
 
 interface RouteMeta {
   title: string;
@@ -115,6 +116,7 @@ export function PageMetaUpdater() {
     }
 
     setDocumentMeta(meta.title, meta.description);
+    trackPageView(pathname, meta.title);
   }, [location.pathname]);
 
   return null;

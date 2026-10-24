@@ -3,6 +3,7 @@ import { SkeletonMembers } from "@/components/shared/SkeletonCard";
 import { Button } from "@/components/ui/button";
 import { Plus, MoreHorizontal, Loader2, Trash2, Mail, Copy, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { useMembers, useAddMember, useDeleteMember, useFamilyInfo } from "@/hooks/use-health-data";
+import { trackEvent } from "@/lib/analytics";
 import { Member } from "@/types/health";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -98,6 +99,7 @@ export default function Members() {
       setIsOpen(false);
       setFormData({ name: "", age: "", gender: "male", conditions: "", email: "" });
       setFormErrors({});
+      trackEvent("member_added", { role: isInvited ? "invited" : "manual" });
       toast.success(isInvited ? "Member invited! Copy the link to share." : "Member added successfully!");
     } catch (err: any) {
       toast.error(err?.message || "Failed to add member.");
@@ -118,6 +120,7 @@ export default function Members() {
   const copyInviteLink = (token: string) => {
     const link = `${window.location.origin}/invite/${token}`;
     navigator.clipboard.writeText(link);
+    trackEvent("invite_code_copied");
     toast.success("Invite link copied to clipboard!", {
       description: "Send this link to the family member.",
     });

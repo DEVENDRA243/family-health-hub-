@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, CalendarCheck, Loader2, Trash2, MoreHorizontal, Clock, Stethoscope, AlertCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useCheckups, useMembers, useAddCheckup, useFamilyInfo, useDeleteCheckup } from "@/hooks/use-health-data";
+import { trackEvent } from "@/lib/analytics";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Dialog,
@@ -97,6 +98,7 @@ export default function Checkups() {
       setIsOpen(false);
       setFormData({ title: "", type: "doctor visit", scheduled_date: "", member_id: "" });
       setFormErrors({});
+      trackEvent("checkup_scheduled");
       toast.success("Checkup scheduled successfully!");
     } catch (err: any) {
       toast.error(err?.message || "Failed to schedule checkup.");

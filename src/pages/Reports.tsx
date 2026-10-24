@@ -20,6 +20,7 @@ import {
   Loader2
 } from "lucide-react";
 import { useReports, useMembers, useAddReport, useFamilyInfo, useDeleteReport } from "@/hooks/use-health-data";
+import { trackEvent } from "@/lib/analytics";
 import { useAuth } from "@/hooks/use-auth";
 import { analyzeMedicalReport } from "@/lib/gemini";
 import { Report } from "@/types/health";
@@ -124,6 +125,7 @@ export default function Reports() {
       setIsOpen(false);
       setFormData({ title: "", member_id: "", type: "PDF" });
       setFile(null);
+      trackEvent("report_uploaded", { file_type: formData.type });
       toast.success("Report added successfully!");
     } catch (err: unknown) {
       const error = err as Error;

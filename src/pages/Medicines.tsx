@@ -3,6 +3,7 @@ import { SkeletonMedicines } from "@/components/shared/SkeletonCard";
 import { Button } from "@/components/ui/button";
 import { Plus, Pill, MoreHorizontal, Loader2, CheckCircle2, Clock, Trash2, AlertCircle } from "lucide-react";
 import { useMedicines, useMembers, useAddMedicine, useDoses, useDeleteMedicine, useFamilyInfo } from "@/hooks/use-health-data";
+import { trackEvent } from "@/lib/analytics";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
 import {
@@ -145,6 +146,10 @@ export default function Medicines() {
       setFormData({ name: "", dosage: "", member_id: "", instructions: "" });
       setTimingSlots([{ hour: "08", minute: "00", period: "AM" }]);
       setFormErrors({});
+      trackEvent("medicine_added", {
+        frequency: `${finalTimings.length}_times_daily`,
+        has_reminder: true,
+      });
       toast.success("Medicine added successfully! It's now live on the dashboard.");
     } catch (err: any) {
       console.error(err);

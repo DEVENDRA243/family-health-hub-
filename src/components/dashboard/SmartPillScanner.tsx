@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useMedicines } from "@/hooks/use-health-data";
+import { trackEvent } from "@/lib/analytics";
 
 export function SmartPillScanner() {
   const { data: medicines } = useMedicines();
@@ -122,6 +123,7 @@ export function SmartPillScanner() {
       }
       const data = await res.json();
       setResult(data.choices?.[0]?.message?.content || "Could not identify medicine.");
+      trackEvent("pill_scanner_used", { success: true });
     } catch (err) {
       console.error("SmartPillScanner Error:", err);
       if (err instanceof Error) {
@@ -236,7 +238,7 @@ export function SmartPillScanner() {
           <div className="flex-1 overflow-y-auto custom-scrollbar px-1 min-h-[300px]">
             {imagePreview && (
               <div className="mb-4 rounded-xl overflow-hidden border border-border relative bg-muted h-32 flex items-center justify-center">
-                 <img src={imagePreview} alt="Captured pill" className="w-full h-full object-cover opacity-60" />
+                 <img src={imagePreview} alt="Captured prescription pill or medicine for AI verification" className="w-full h-full object-cover opacity-60" />
                  {isAnalyzing && (
                     <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] flex flex-col items-center justify-center z-10">
                        <Loader2 className="h-8 w-8 animate-spin text-primary mb-2 shadow-sm" />

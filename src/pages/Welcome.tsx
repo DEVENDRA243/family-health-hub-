@@ -13,6 +13,7 @@ import {
   Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { trackEvent } from "@/lib/analytics";
 import { useFamilyInfo, useMembers } from "@/hooks/use-health-data";
 import { toast } from "sonner";
 import { usePageMeta } from "@/components/shared/PageMeta";
@@ -36,6 +37,7 @@ export default function Welcome() {
     if (!inviteCode) return;
     navigator.clipboard.writeText(inviteCode);
     setCopied(true);
+    trackEvent("invite_code_copied");
     toast.success("Invite code copied to clipboard!");
     setTimeout(() => setCopied(false), 2000);
   };

@@ -1,0 +1,26 @@
+{
+  "name": "FamilyHealth Hub — Real-Time Family Care & Medication Tracking",
+  "short_name": "FamilyHealth",
+  "description": "Coordinate medications, track doctor checkups, log real-time vitals, and analyze lab reports with AI for your entire family.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0d9488",
+  "orientation": "portrait-primary",
+  "categories": ["medical", "health", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

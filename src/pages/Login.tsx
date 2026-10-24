@@ -78,6 +78,7 @@ const CinematicVideo = ({ src, className = "", delay = 0 }: { src: string; class
     <video
       ref={videoRef}
       src={src}
+      aria-label="Family caregiving ambient background video"
       className={`${className} transition-opacity duration-100 ease-linear`}
       style={{ opacity }}
       muted
@@ -183,7 +184,7 @@ export default function Login() {
               className="liquid-glass rounded-full p-4 text-white/60 hover:text-white hover:bg-white/5 transition"
             >
               {item === "logo" ? (
-                <img src="/favicon.png" alt="Logo" className="w-5 h-5 object-contain opacity-60" />
+                <img src="/favicon.png" alt="FamilyHealth Hub Logo Icon" className="w-5 h-5 object-contain opacity-60" />
               ) : (
                 (() => {
                   const Icon = item as any;
@@ -276,6 +277,7 @@ function FeaturedVideoSection() {
           src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260402_054547_9875cfc5-155a-4229-8ec8-b7ba7125cbf8.mp4"
           className="absolute inset-0 w-full h-full object-cover scale-105"
           muted autoPlay loop playsInline
+          aria-label="Caregiver organizing medications video demonstration"
         />
         {/* Gradient overlays to ensure text/card readability and smooth section transitions */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent" />
@@ -344,6 +346,7 @@ function PhilosophySection() {
               src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260324_151826_c7218672-6e92-402c-9e45-f1e0f454bdc4.mp4"
               className="w-full h-full object-cover"
               muted autoPlay loop playsInline
+              aria-label="Family health synchronization in action video"
             />
           </motion.div>
 

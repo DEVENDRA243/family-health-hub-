@@ -52,7 +52,7 @@ export function AvatarWithFallback({ name, photoUrl, size = "md", className }: A
       )}
     >
       {photoUrl ? (
-        <img src={photoUrl} alt={name} className="h-full w-full object-cover" />
+        <img src={photoUrl} alt={name ? `${name}'s profile avatar` : "Family member profile photo"} className="h-full w-full object-cover" />
       ) : (
         initials
       )}
