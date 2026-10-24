@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -42,13 +43,26 @@ const adminItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const { user, signOut } = useAuth();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
   const { data: familyInfo, isLoading: isFamilyLoading } = useFamilyInfo();
   const { data: members, isLoading: isMembersLoading } = useMembers();
+
+  // Automatically dismiss mobile sidebar drawer whenever route changes
+  useEffect(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [location.pathname, isMobile, setOpenMobile]);
+
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   const isHead = familyInfo?.created_by === user?.id;
 
@@ -85,7 +99,7 @@ export function AppSidebar() {
               {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink to={item.url} end={item.url === "/"}>
+                    <NavLink to={item.url} end={item.url === "/"} onClick={handleNavClick}>
                       <item.icon className="h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
@@ -104,7 +118,7 @@ export function AppSidebar() {
                 {adminItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                      <NavLink to={item.url}>
+                      <NavLink to={item.url} onClick={handleNavClick}>
                         <item.icon className="h-4 w-4" />
                         {!collapsed && <span>{item.title}</span>}
                       </NavLink>
