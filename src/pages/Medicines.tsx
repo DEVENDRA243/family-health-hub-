@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -237,6 +238,9 @@ export default function Medicines() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add New Medicine</DialogTitle>
+                <DialogDescription>
+                  Enter the medication details, schedule timings, and initial bottle inventory.
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddMedicine} className="space-y-4 pt-4" noValidate>
                 <div className="grid gap-2">

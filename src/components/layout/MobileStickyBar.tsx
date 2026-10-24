@@ -16,6 +16,7 @@ import { useDoses } from "@/hooks/use-health-data";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -139,9 +140,9 @@ export function MobileStickyBar() {
             <DialogTitle className="text-lg font-bold flex items-center justify-between">
               <span>Quick Care Actions</span>
             </DialogTitle>
-            <p className="text-xs text-muted-foreground">
+            <DialogDescription className="text-xs text-muted-foreground">
               Fast shortcuts for daily medication and health management
-            </p>
+            </DialogDescription>
           </DialogHeader>
 
           <div className="grid grid-cols-2 gap-3 pt-2">

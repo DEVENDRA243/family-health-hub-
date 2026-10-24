@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -157,6 +158,9 @@ export default function Members() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add Family Member</DialogTitle>
+                <DialogDescription>
+                  Register a family member to manage their medications, appointments, and care history.
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddMember} className="space-y-4 pt-4" noValidate>
                 <div className="grid gap-2">

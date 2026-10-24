@@ -460,6 +460,9 @@ export default function Reports() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add New Report</DialogTitle>
+                <DialogDescription>
+                  Upload medical lab tests, imaging results, or doctor prescriptions.
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddReport} className="space-y-4 pt-4">
                 <div className="grid gap-2">

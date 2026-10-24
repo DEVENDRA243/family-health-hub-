@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -149,6 +150,9 @@ export default function Checkups() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Schedule New Checkup</DialogTitle>
+                <DialogDescription>
+                  Set a reminder for upcoming doctor visits, lab tests, or follow-up appointments.
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddCheckup} className="space-y-4 pt-4" noValidate>
                 <div className="grid gap-2">
