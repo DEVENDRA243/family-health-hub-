@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import type { Member, Medicine, Dose, Checkup, Report, FamilyInfo } from '@/types/health';
 import { useAuth } from './use-auth';
 import { format } from 'date-fns';
+import { decrementMedicineStock, incrementMedicineStock } from './use-medicine-stock';
 
 // --- Family Info ---
 export const useFamilyInfo = () => {
@@ -392,7 +393,7 @@ export const useUpdateDoseStatus = () => {
   const { data: family } = useFamilyInfo();
 
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: Dose['status'] }) => {
+    mutationFn: async ({ id, status, previousStatus }: { id: string; status: Dose['status']; previousStatus?: Dose['status'] }) => {
       const { data, error } = await supabase
         .from('doses')
         .update({ status })
@@ -400,6 +401,15 @@ export const useUpdateDoseStatus = () => {
         .select('*, medicines(name, members(name))')
         .single();
       if (error) throw error;
+
+      // Automatically sync inventory stock when dose status changes
+      if (data?.medicine_id) {
+        if (status === 'taken' && previousStatus !== 'taken') {
+          decrementMedicineStock(data.medicine_id);
+        } else if (previousStatus === 'taken' && status !== 'taken') {
+          incrementMedicineStock(data.medicine_id);
+        }
+      }
 
       // If status is missed, notify the family head
       if (status === 'missed' && family) {

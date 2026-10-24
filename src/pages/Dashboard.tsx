@@ -3,24 +3,30 @@ import { DoseCard } from "@/components/dashboard/DoseCard";
 import { CheckupCard } from "@/components/dashboard/CheckupCard";
 import { SmartPillScanner } from "@/components/dashboard/SmartPillScanner";
 import { AllergyScanner } from "@/components/dashboard/AllergyScanner";
-import { CalendarDays, Loader2, CheckCircle2, AlertCircle, History, Stethoscope } from "lucide-react";
+import { CalendarDays, Loader2, CheckCircle2, AlertCircle, History, Stethoscope, PackagePlus } from "lucide-react";
 import { SkeletonDashboard } from "@/components/shared/SkeletonCard";
 import { format, isPast, parse, isSameDay, parseISO } from "date-fns";
-import { useDoses, useUpdateDoseStatus, useCheckups, useUpdateCheckupStatus } from "@/hooks/use-health-data";
+import { useMedicines, useDoses, useUpdateDoseStatus, useCheckups, useUpdateCheckupStatus } from "@/hooks/use-health-data";
+import { useLowStockMedicines } from "@/hooks/use-medicine-stock";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+
 export default function Dashboard() {
   const todayDate = format(new Date(), "yyyy-MM-dd");
   const todayFormatted = format(new Date(), "EEEE, MMMM d, yyyy");
 
+  const { data: medicines } = useMedicines();
+  const lowStockList = useLowStockMedicines(medicines);
   const { data: doses, isLoading: isDosesLoading, error: dosesError } = useDoses(todayDate);
   const { data: checkups, isLoading: isCheckupsLoading, error: checkupsError } = useCheckups();
   const updateStatus = useUpdateDoseStatus();
   const updateCheckupStatus = useUpdateCheckupStatus();
 
-  const handleMarkTaken = async (doseId: string, medicineName: string, memberName: string) => {
+  const handleMarkTaken = async (doseId: string, medicineName: string, memberName: string, currentStatus?: 'pending' | 'taken' | 'missed') => {
     try {
-      await updateStatus.mutateAsync({ id: doseId, status: 'taken' });
+      await updateStatus.mutateAsync({ id: doseId, status: 'taken', previousStatus: currentStatus });
       toast.success(`${memberName} marked ${medicineName} as TAKEN!`, {
         description: `Logged at ${format(new Date(), "hh:mm a")}`,
         icon: <CheckCircle2 className="h-5 w-5 text-success" />,
@@ -30,9 +36,9 @@ export default function Dashboard() {
     }
   };
 
-  const handleMarkMissed = async (doseId: string, medicineName: string, memberName: string) => {
+  const handleMarkMissed = async (doseId: string, medicineName: string, memberName: string, currentStatus?: 'pending' | 'taken' | 'missed') => {
     try {
-      await updateStatus.mutateAsync({ id: doseId, status: 'missed' });
+      await updateStatus.mutateAsync({ id: doseId, status: 'missed', previousStatus: currentStatus });
       toast.error(`${memberName} marked ${medicineName} as NOT TAKEN!`, {
         description: `Logged at ${format(new Date(), "hh:mm a")}`,
         icon: <AlertCircle className="h-5 w-5 text-destructive" />,
@@ -204,6 +210,29 @@ export default function Dashboard() {
           </div>
         )}
 
+        {lowStockList.length > 0 && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 flex items-center justify-between gap-4 shadow-sm animate-in fade-in duration-300">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-9 w-9 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <PackagePlus className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                  Refill Needed &bull; {lowStockList.length} {lowStockList.length === 1 ? 'Medication' : 'Medications'} Low
+                </p>
+                <p className="text-xs text-foreground/85 font-medium mt-0.5 truncate">
+                  {lowStockList.map(item => `${item.medicine.name} (${item.stock.pillsRemaining} left)`).join(", ")}
+                </p>
+              </div>
+            </div>
+            <Link to="/medicines" className="shrink-0">
+              <Button size="sm" variant="outline" className="text-xs font-bold border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/15 shrink-0">
+                Refill Now
+              </Button>
+            </Link>
+          </div>
+        )}
+
         <div>
           <h2 className="section-heading mb-3 flex items-center gap-2">
             Today's Live Schedule
@@ -237,12 +266,14 @@ export default function Dashboard() {
                     onMarkTaken={() => handleMarkTaken(
                       dose.id,
                       dose.medicines?.name,
-                      dose.medicines?.members?.name
+                      dose.medicines?.members?.name,
+                      dose.status
                     )}
                     onMarkMissed={() => handleMarkMissed(
                       dose.id,
                       dose.medicines?.name,
-                      dose.medicines?.members?.name
+                      dose.medicines?.members?.name,
+                      dose.status
                     )}
                   />
                 ))

@@ -1,8 +1,10 @@
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { SkeletonMedicines } from "@/components/shared/SkeletonCard";
 import { Button } from "@/components/ui/button";
-import { Plus, Pill, MoreHorizontal, Loader2, CheckCircle2, Clock, Trash2, AlertCircle } from "lucide-react";
+import { Plus, Pill, MoreHorizontal, Loader2, CheckCircle2, Clock, Trash2, AlertCircle, PackagePlus, AlertTriangle } from "lucide-react";
 import { useMedicines, useMembers, useAddMedicine, useDoses, useDeleteMedicine, useFamilyInfo } from "@/hooks/use-health-data";
+import { useMedicineStock, saveStock, refillMedicineStock } from "@/hooks/use-medicine-stock";
+import { Medicine } from "@/types/health";
 import { trackEvent } from "@/lib/analytics";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
@@ -45,6 +47,35 @@ type TimingSlot = {
 const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
 
+function MedicineStockBadge({ medicineId }: { medicineId: string }) {
+  const { pillsRemaining, isLowStock, isOutOfStock, unit } = useMedicineStock(medicineId);
+
+  if (isOutOfStock) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-destructive/15 text-destructive border border-destructive/30 animate-pulse">
+        <AlertTriangle className="h-3 w-3" />
+        Out of Stock (0 left)
+      </span>
+    );
+  }
+
+  if (isLowStock) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30">
+        <AlertTriangle className="h-3 w-3" />
+        Low Stock: {pillsRemaining} {unit} left
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted/70 text-muted-foreground border border-border/50">
+      <Pill className="h-3 w-3 text-primary/70" />
+      {pillsRemaining} {unit} in bottle
+    </span>
+  );
+}
+
 export default function Medicines() {
   const { data: medicines, isLoading: isMedLoading } = useMedicines();
   const { data: members } = useMembers();
@@ -57,6 +88,10 @@ export default function Medicines() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteName, setDeleteName] = useState<string>("");
 
+  // Stock refill modal state
+  const [refillTarget, setRefillTarget] = useState<Medicine | null>(null);
+  const [refillCount, setRefillCount] = useState<number>(30);
+
   const isAdmin = familyInfo?.created_by === user?.id;
 
   const [formData, setFormData] = useState({
@@ -64,6 +99,8 @@ export default function Medicines() {
     dosage: "",
     member_id: "",
     instructions: "",
+    initialStock: 30,
+    refillThreshold: 5,
   });
 
   const [formErrors, setFormErrors] = useState<{
@@ -134,7 +171,7 @@ export default function Medicines() {
     setFormErrors({});
 
     try {
-      await addMedicine.mutateAsync({
+      const newMed = await addMedicine.mutateAsync({
         name: formData.name.trim(),
         dosage: formData.dosage.trim(),
         member_id: formData.member_id,
@@ -142,8 +179,18 @@ export default function Medicines() {
         timings: finalTimings,
         is_active: true,
       });
+
+      if (newMed?.id) {
+        saveStock({
+          medicineId: newMed.id,
+          pillsRemaining: formData.initialStock,
+          refillThreshold: formData.refillThreshold,
+          unit: "tablets",
+        });
+      }
+
       setIsOpen(false);
-      setFormData({ name: "", dosage: "", member_id: "", instructions: "" });
+      setFormData({ name: "", dosage: "", member_id: "", instructions: "", initialStock: 30, refillThreshold: 5 });
       setTimingSlots([{ hour: "08", minute: "00", period: "AM" }]);
       setFormErrors({});
       trackEvent("medicine_added", {
@@ -267,6 +314,30 @@ export default function Medicines() {
                     onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
                     placeholder="e.g. After food / Empty stomach"
                   />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="initialStock">Bottle Quantity (Pills)</Label>
+                    <Input
+                      id="initialStock"
+                      type="number"
+                      min="1"
+                      value={formData.initialStock}
+                      onChange={(e) => setFormData({ ...formData, initialStock: Math.max(1, parseInt(e.target.value) || 1) })}
+                      placeholder="e.g. 30"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="refillThreshold">Low Stock Alert (Pills)</Label>
+                    <Input
+                      id="refillThreshold"
+                      type="number"
+                      min="1"
+                      value={formData.refillThreshold}
+                      onChange={(e) => setFormData({ ...formData, refillThreshold: Math.max(1, parseInt(e.target.value) || 1) })}
+                      placeholder="e.g. 5"
+                    />
+                  </div>
                 </div>
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between">
@@ -415,11 +486,12 @@ export default function Medicines() {
                   <p className="caption font-medium text-foreground/80 mt-0.5">
                     {med.members?.name} · {med.instructions}
                   </p>
-                  <div className="flex items-center gap-3 mt-1.5">
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
                     <div className="flex items-center gap-1 text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
                       <Clock className="h-3 w-3" />
                       {med.timings?.join(", ")}
                     </div>
+                    <MedicineStockBadge medicineId={med.id} />
                   </div>
                 </div>
 
@@ -446,6 +518,16 @@ export default function Medicines() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        className="gap-2 cursor-pointer font-bold text-primary focus:text-primary"
+                        onClick={() => {
+                          setRefillTarget(med);
+                          setRefillCount(30);
+                        }}
+                      >
+                        <PackagePlus className="h-4 w-4" />
+                        Refill Bottle
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive gap-2 cursor-pointer font-bold"
                         onClick={() => {
@@ -484,6 +566,74 @@ export default function Medicines() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Refill Bottle Dialog */}
+      <Dialog open={!!refillTarget} onOpenChange={(open) => !open && setRefillTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PackagePlus className="h-5 w-5 text-primary" />
+              <span>Refill Bottle: {refillTarget?.name}</span>
+            </DialogTitle>
+            <DialogDescription>
+              Add newly purchased tablets to update your family inventory and clear low stock alerts.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3">
+            <div className="grid gap-2">
+              <Label htmlFor="refillPillCount">Pills / Tablets to Add</Label>
+              <Input
+                id="refillPillCount"
+                type="number"
+                min="1"
+                value={refillCount}
+                onChange={(e) => setRefillCount(Math.max(1, parseInt(e.target.value) || 1))}
+                className="text-xl font-black h-12 text-primary"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground font-medium">Quick Presets:</p>
+              <div className="grid grid-cols-4 gap-2">
+                {[15, 30, 60, 90].map((preset) => (
+                  <Button
+                    key={preset}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRefillCount(preset)}
+                    className={refillCount === preset ? "border-primary bg-primary/10 text-primary font-bold shadow-sm" : "text-xs font-semibold"}
+                  >
+                    +{preset}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setRefillTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              className="font-bold gap-2"
+              onClick={() => {
+                if (!refillTarget) return;
+                const updated = refillMedicineStock(refillTarget.id, refillCount);
+                toast.success(`Refilled ${refillTarget.name}!`, {
+                  description: `Added +${refillCount} pills. Total in bottle: ${updated.pillsRemaining} pills.`,
+                  icon: <PackagePlus className="h-5 w-5 text-primary" />,
+                });
+                setRefillTarget(null);
+              }}
+            >
+              <PackagePlus className="h-4 w-4" />
+              Confirm Refill
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
