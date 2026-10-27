@@ -3,7 +3,7 @@ import { DoseCard } from "@/components/dashboard/DoseCard";
 import { CheckupCard } from "@/components/dashboard/CheckupCard";
 import { SmartPillScanner } from "@/components/dashboard/SmartPillScanner";
 import { AllergyScanner } from "@/components/dashboard/AllergyScanner";
-import { CalendarDays, Loader2, CheckCircle2, AlertCircle, History, Stethoscope, PackagePlus } from "lucide-react";
+import { CalendarDays, Loader2, CheckCircle2, AlertCircle, History, Stethoscope, PackagePlus, HelpCircle, Sparkles } from "lucide-react";
 import { SkeletonDashboard } from "@/components/shared/SkeletonCard";
 import { format, isPast, parse, isSameDay, parseISO } from "date-fns";
 import { useMedicines, useDoses, useUpdateDoseStatus, useCheckups, useUpdateCheckupStatus } from "@/hooks/use-health-data";
@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import HowItWorks, { Step } from "@/components/ui/how-it-works";
 
 export default function Dashboard() {
   const todayDate = format(new Date(), "yyyy-MM-dd");
@@ -158,7 +160,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 max-w-5xl grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="page-title text-2xl font-bold">Family Health Control</h1>
             <p className="caption flex items-center gap-1.5 mt-1 font-bold text-primary uppercase tracking-wider">
@@ -166,6 +168,62 @@ export default function Dashboard() {
               LIVE MONITORING: {todayFormatted}
             </p>
           </div>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs font-semibold rounded-xl border-primary/20 hover:bg-primary/10 hover:text-primary transition-all shrink-0"
+              >
+                <HelpCircle className="h-4 w-4 text-primary" />
+                <span className="hidden sm:inline">How To Execute</span>
+                <span className="sm:hidden">Guide</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-8">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  How To Execute Your Daily Care Circle
+                </DialogTitle>
+                <DialogDescription>
+                  Step-by-step roadmap for logging medicines, tracking adherence, scanning prescriptions, and maintaining family safety.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="mt-2">
+                <HowItWorks
+                  features={[
+                    {
+                      title: "Confirm Daily Prescriptions",
+                      description: "Mark pills as 'Taken' or 'Missed' in the Today's Schedule feed. Notifications update circle members instantly.",
+                      colorTheme: "orange",
+                    },
+                    {
+                      title: "Smart Pill Scanner",
+                      description: "Click 'Scan Prescription' to automatically ingest medicine names, frequency, and refills via OCR & AI.",
+                      colorTheme: "blue",
+                    },
+                    {
+                      title: "Monitor Checkups",
+                      description: "Track pediatrician visits, dental cleanings, or geriatric blood pressure follow-ups with scheduled reminders.",
+                      colorTheme: "purple",
+                    },
+                    {
+                      title: "Refill Stock Alerts",
+                      description: "Watch inventory gauges. When pills drop below 5 doses, auto-alerts signal the head caregiver to restock.",
+                      colorTheme: "orange",
+                    },
+                    {
+                      title: "Trigger Emergency SOS",
+                      description: "Use the top header emergency button in critical moments to broadcast live GPS coordinates to family contacts.",
+                      colorTheme: "blue",
+                    },
+                  ]}
+                  className="py-2 px-0 bg-transparent dark:bg-transparent"
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* HEAD'S STATUS SUMMARY */}

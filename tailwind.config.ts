@@ -21,6 +21,9 @@ export default {
         dm: ['DM Sans', 'sans-serif'],
         bangers: ['Bangers', 'cursive'],
       },
+      rotate: {
+        '8': '8deg',
+      },
       colors: {
         accent1: "#FF3AF2",
         accent2: "#00F5D4",

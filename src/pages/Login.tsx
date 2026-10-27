@@ -4,6 +4,8 @@ import { ArrowRight, Instagram, Twitter } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import HowItWorks, { Step } from "@/components/ui/how-it-works";
+import FeatureAccordionSection from "@/components/ui/feature-accordion-section";
 
 // --- Utility Components ---
 
@@ -129,6 +131,7 @@ export default function Login() {
               <div className="hidden md:flex items-center gap-8 text-[10px] tracking-[0.2em] font-bold uppercase text-white/40">
                 <a href="#about" className="hover:text-white transition-colors">Mission</a>
                 <a href="#featured" className="hover:text-white transition-colors">Capabilities</a>
+                <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
                 <a href="#philosophy" className="hover:text-white transition-colors">Safety</a>
               </div>
             </div>
@@ -191,10 +194,13 @@ export default function Login() {
       {/* SECTION 2: ABOUT */}
       <AboutSection />
 
-      {/* SECTION 3: FEATURED VIDEO */}
-      <FeaturedVideoSection />
+      {/* SECTION 3: CAPABILITIES ACCORDION */}
+      <CapabilitiesSection />
 
-      {/* SECTION 4: PHILOSOPHY */}
+      {/* SECTION 4: HOW IT WORKS */}
+      <HowItWorksSection />
+
+      {/* SECTION 5: PHILOSOPHY */}
       <PhilosophySection />
 
       {/* FOOTER */}
@@ -222,93 +228,115 @@ function AboutSection() {
         <motion.h2 
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
           transition={{ duration: 0.8, delay: 0.1 }}
-          className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl leading-[1.1] tracking-tight max-w-5xl mb-24 md:mb-32 mx-auto md:mx-0"
+          className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl leading-[1.1] tracking-tight max-w-5xl mb-8 mx-auto md:mx-0"
         >
           You shouldn't have to be a <br className="hidden md:block" /> 
           medical expert to keep your <InstrumentItalic className="text-white/60">family safe.</InstrumentItalic>
         </motion.h2>
-
-        <motion.p 
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="text-white/40 text-xs md:text-sm tracking-widest uppercase mb-4"
-        >
-          CAPABILITIES
-        </motion.p>
       </div>
     </SectionWrapper>
   );
 }
 
-const FeatureCard = ({ title, desc, isRight }: { title: string; desc: string; isRight?: boolean }) => (
-  <div className={`liquid-glass rounded-2xl p-6 md:p-8 hover:bg-white/5 transition group/card border border-white/5 shadow-xl ${isRight ? 'md:text-right text-left' : 'text-left'}`}>
-    <p className="text-white/50 text-[10px] md:text-xs tracking-widest uppercase mb-2 md:mb-3">{title}</p>
-    <p className="text-white text-xs md:text-base leading-relaxed">{desc}</p>
-  </div>
-);
-
-function FeaturedVideoSection() {
+function CapabilitiesSection() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
-  const leftFeatures = [
-    { title: "MEDICAL AI", desc: "Translate confusing doctor's notes and lab reports into plain, actionable English." },
-    { title: "SOS ALERTS", desc: "Peace of mind when you aren't there. One-tap emergency notifications sent directly to you." }
-  ];
+  return (
+    <SectionWrapper id="featured" className="py-20 md:py-32 px-6 bg-black text-white relative border-t border-white/5">
+      <div ref={ref} className="max-w-6xl mx-auto mb-12 text-center md:text-left">
+        <motion.p
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          transition={{ duration: 0.6 }}
+          className="text-white/40 text-xs md:text-sm tracking-widest uppercase mb-4"
+        >
+          CORE CAPABILITIES
+        </motion.p>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <motion.h2
+            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+            transition={{ duration: 0.8, delay: 0.1 }}
+            className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.1] tracking-tight text-white"
+            style={{ fontFamily: "'Instrument Serif', serif" }}
+          >
+            Explore Our <InstrumentItalic className="text-white/60">Capabilities.</InstrumentItalic>
+          </motion.h2>
+          <p className="text-white/60 text-sm md:text-base max-w-md leading-relaxed">
+            Expand any category below to preview how intelligent prescription scanning, allergy detection, synchronized schedules, and emergency SOS safeguard your family circle.
+          </p>
+        </div>
+      </div>
 
-  const rightFeatures = [
-    { title: "PILL SCANNER", desc: "Stop typing complex prescription names. Scan a bottle and let AI sync the schedule." },
-    { title: "ALLERGY SCANNER", desc: "Scan restaurant menus or food labels to instantly spot hidden allergens for your kids." }
+      <div className="dark max-w-2xl mx-auto">
+        <FeatureAccordionSection />
+      </div>
+    </SectionWrapper>
+  );
+}
+
+
+function HowItWorksSection() {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  const familySteps: Step[] = [
+    {
+      title: "Create or Join Circle",
+      description:
+        "Sign up in seconds and establish your private care group, or connect with a 6-digit family invite code.",
+      colorTheme: "orange",
+    },
+    {
+      title: "Add Family Profiles",
+      description:
+        "Build member profiles for kids, parents, or seniors with medical conditions, blood groups, and emergency contacts.",
+      colorTheme: "blue",
+    },
+    {
+      title: "Schedule Daily Meds",
+      description:
+        "Enter prescriptions with exact time slots (morning, afternoon, night) and automated adherence tracking.",
+      colorTheme: "purple",
+    },
+    {
+      title: "AI Scan Pills & Reports",
+      description:
+        "Snap photos of prescription bottles or clinic lab reports. AI deciphers dosage schedules and medical jargon.",
+      colorTheme: "orange",
+    },
+    {
+      title: "Live Tracking & SOS",
+      description:
+        "Confirm taken doses in real time, monitor medicine stock refills, and broadcast instant GPS distress alerts.",
+      colorTheme: "blue",
+    },
   ];
 
   return (
-    <SectionWrapper id="featured" className="relative min-h-screen md:h-screen w-full overflow-hidden flex flex-col justify-center">
-      {/* Background Video (Full Bleed) */}
-      <div ref={ref} className="absolute inset-0 z-0">
-        <video 
-          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260402_054547_9875cfc5-155a-4229-8ec8-b7ba7125cbf8.mp4"
-          className="absolute inset-0 w-full h-full object-cover scale-105"
-          muted autoPlay loop playsInline
-          preload="none"
-          aria-label="Caregiver organizing medications video demonstration"
-        />
-        {/* Gradient overlays to ensure text/card readability and smooth section transitions */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black/60" />
+    <SectionWrapper id="how-it-works" className="py-24 md:py-36 bg-black text-white relative border-t border-white/5">
+      <div ref={ref} className="max-w-6xl mx-auto px-6 mb-12 text-center md:text-left">
+        <motion.p
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          transition={{ duration: 0.6 }}
+          className="text-white/40 text-xs md:text-sm tracking-widest uppercase mb-4"
+        >
+          STEP-BY-STEP EXECUTION
+        </motion.p>
+        <motion.h2
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+          transition={{ duration: 0.8, delay: 0.1 }}
+          className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.1] tracking-tight text-white"
+          style={{ fontFamily: "'Instrument Serif', serif" }}
+        >
+          How It <InstrumentItalic className="text-white/60">Works.</InstrumentItalic>
+        </motion.h2>
+        <p className="text-white/60 text-sm md:text-base mt-4 max-w-xl leading-relaxed">
+          Follow these 5 streamlined steps to turn scattered medical notes and chaotic prescription routines into an automated, coordinated family care circle.
+        </p>
       </div>
-      
-      {/* Unified Overlay (Floating Edge-to-Edge) */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 py-24 md:py-0 flex flex-col md:grid md:grid-cols-4 gap-6 md:gap-12 justify-center items-center min-h-full">
-        {/* Left side Features */}
-        <div className="flex flex-col justify-center gap-6 md:gap-10 order-1 w-full max-w-sm md:max-w-none">
-          {leftFeatures.map((f, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -40 }}
-              animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -40 }}
-              transition={{ duration: 0.9, delay: i * 0.2 }}
-            >
-              <FeatureCard {...f} />
-            </motion.div>
-          ))}
-        </div>
 
-        {/* Clear Center Gap (Maintaining the focal point of the video) */}
-        <div className="hidden md:block col-span-2 pointer-events-none order-2" />
-
-        {/* Right side Features */}
-        <div className="flex flex-col justify-center gap-6 md:gap-10 order-3 w-full max-w-sm md:max-w-none">
-          {rightFeatures.map((f, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: 40 }}
-              animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 40 }}
-              transition={{ duration: 0.9, delay: i * 0.2 }}
-            >
-              <FeatureCard {...f} isRight />
-            </motion.div>
-          ))}
-        </div>
+      <div className="dark">
+        <HowItWorks features={familySteps} className="bg-transparent dark:bg-transparent" />
       </div>
     </SectionWrapper>
   );
@@ -397,6 +425,11 @@ function LandingFooter() {
               <li>
                 <a href="#about" className="hover:text-white transition-colors">
                   Platform Features
+                </a>
+              </li>
+              <li>
+                <a href="#how-it-works" className="hover:text-white transition-colors">
+                  How It Works Guide
                 </a>
               </li>
               <li>

@@ -19,6 +19,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "next/image": [
+        "./src/lib/next-image.tsx"
       ]
     },
     "skipLibCheck": true,
